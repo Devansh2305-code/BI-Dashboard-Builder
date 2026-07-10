@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import { GoogleGenAI, Type } from "@google/genai";
-import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 
 const app = express();
@@ -9,9 +8,15 @@ const PORT = 3000;
 
 // Helper to lazily load and initialize the Gemini API client
 function getGenAIClient(): GoogleGenAI {
-  // Load environment variables dynamically, prioritizing .env.local if present
-  dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
-  dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+  // Load environment variables dynamically only if the key is not already defined
+  if (!process.env.GEMINI_API_KEY) {
+    try {
+      dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
+      dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+    } catch (e) {
+      console.warn("Failed to load dotenv files:", e);
+    }
+  }
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -222,6 +227,7 @@ app.post("/api/chat", async (req, res) => {
 async function setupVite() {
   if (process.env.NODE_ENV !== "production") {
     console.log("Starting server in DEVELOPMENT mode with Vite Middleware...");
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

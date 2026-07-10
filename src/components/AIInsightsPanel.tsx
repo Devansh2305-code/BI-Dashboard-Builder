@@ -298,7 +298,7 @@ How can I help you extract value from your active dataset today? You can write c
                 </p>
               </div>
               <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono animate-pulse">
-                POST /api/analyze - MODEL: gemini-3.5-flash
+                POST /api/analyze - MODEL: gemini-2.5-flash
               </div>
             </div>
           )}
@@ -310,7 +310,10 @@ How can I help you extract value from your active dataset today? You can write c
               <div className="space-y-1 text-xs">
                 <h4 className="font-bold">AI Analysis Interrupted</h4>
                 <p className="leading-relaxed text-rose-700 dark:text-rose-300">{error}</p>
-                <p className="text-rose-500 dark:text-rose-400 font-medium mt-1">Please make sure you have added your GEMINI_API_KEY inside the Secrets panel.</p>
+                <p className="text-rose-500 dark:text-rose-400 font-medium mt-1">
+                  Please verify that <strong>GEMINI_API_KEY</strong> is configured. 
+                  <em> Note: If you added or changed environment variables in Vercel, you <strong>must redeploy</strong> your project on Vercel for the changes to take active effect!</em>
+                </p>
               </div>
             </div>
           )}
