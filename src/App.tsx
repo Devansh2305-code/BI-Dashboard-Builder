@@ -24,7 +24,8 @@ import {
   Sun,
   Moon,
   FileDown,
-  ExternalLink
+  ExternalLink,
+  Menu
 } from "lucide-react";
 
 const getDefaultWidgets = (role: Role, availableMeasures: Measure[]): Widget[] => {
@@ -312,6 +313,7 @@ export default function App() {
   });
 
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     return localStorage.getItem("theme-mode") === "dark";
   });
@@ -511,8 +513,8 @@ export default function App() {
   return (
     <div id="app-viewport-frame" className={`flex h-screen bg-slate-50 font-sans overflow-hidden print:bg-white print:h-auto ${isDarkMode ? "dark" : ""}`}>
       
-      {/* Side Navigation Rail */}
-      <div className="print:hidden h-full">
+      {/* Side Navigation Rail - Desktop */}
+      <div className="hidden lg:block print:hidden h-full">
         <Sidebar 
           currentView={currentView} 
           setView={setView} 
@@ -522,27 +524,59 @@ export default function App() {
         />
       </div>
 
+      {/* Side Navigation Rail - Mobile Drawer */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 flex lg:hidden print:hidden" id="mobile-sidebar-drawer">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity duration-200" 
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          {/* Drawer Body */}
+          <div className="relative flex w-full max-w-xs flex-1 flex-col bg-white dark:bg-slate-900 focus:outline-none shadow-xl transform transition-transform duration-200">
+            <Sidebar 
+              currentView={currentView} 
+              setView={setView} 
+              activeRole={activeRole} 
+              setRole={setActiveRole}
+              dataLoaded={dataset.length > 0}
+              onClose={() => setIsMobileMenuOpen(false)}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Main Workspace Frame */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden print:h-auto print:overflow-visible">
         
         {/* Top Operational Header */}
-        <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0 print:hidden shadow-xs">
-          <div className="flex items-center space-x-3.5">
-            <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200">
-              <span className="text-slate-500">Profile:</span>
-              <span className="text-blue-700 font-bold">{activeRole}</span>
+        <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-4 flex items-center justify-between shrink-0 print:hidden shadow-xs">
+          <div className="flex items-center space-x-2 sm:space-x-3.5">
+            {/* Hamburger button for mobile screens */}
+            <button
+              id="btn-open-mobile-menu"
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="lg:hidden p-2 -ml-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
+              title="Open Navigation"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-100 dark:bg-slate-800 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700">
+              <span className="text-slate-500 dark:text-slate-400 hidden xs:inline">Profile:</span>
+              <span className="text-blue-700 dark:text-blue-400 font-bold">{activeRole}</span>
             </div>
-            <div className="h-4 w-px bg-slate-200" />
-            <span className="text-xs text-slate-400 font-mono">
-              Dataset Context: <strong className="text-slate-600">{dataset.length}</strong> active rows
+            <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block" />
+            <span className="text-xs text-slate-400 dark:text-slate-500 font-mono hidden sm:inline-block">
+              Dataset Context: <strong className="text-slate-600 dark:text-slate-300">{dataset.length}</strong> active rows
             </span>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
             <button
               id="btn-toggle-dark-mode"
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 p-2 rounded-lg border border-slate-200 transition flex items-center justify-center shadow-xs"
+              className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 p-2 rounded-lg border border-slate-200 dark:border-slate-700 transition flex items-center justify-center shadow-xs"
               title="Toggle Dark/Light Mode"
             >
               {isDarkMode ? <Sun className="w-4 h-4 text-amber-500 animate-pulse" /> : <Moon className="w-4 h-4 text-slate-500" />}
@@ -551,11 +585,11 @@ export default function App() {
             <button
               id="btn-global-download-report"
               onClick={handleDownloadReport}
-              className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold text-xs py-2 px-3.5 rounded-lg transition flex items-center space-x-1.5 shadow-sm"
+              className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-semibold text-xs py-2 px-2.5 sm:px-3.5 rounded-lg transition flex items-center space-x-1.5 shadow-sm"
               title="Download clean executive report as PDF"
             >
-              <FileDown className="w-4 h-4 text-slate-500" />
-              <span>Download Report</span>
+              <FileDown className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+              <span className="hidden md:inline">Download Report</span>
             </button>
 
             <a
@@ -563,20 +597,21 @@ export default function App() {
               href={window.location.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold text-xs py-2 px-3.5 rounded-lg transition flex items-center space-x-1.5 shadow-sm print:hidden"
+              className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-semibold text-xs py-2 px-2.5 sm:px-3.5 rounded-lg transition flex items-center space-x-1.5 shadow-sm print:hidden"
               title="Open preview in a new tab for perfect full-screen layout and print capabilities"
             >
-              <ExternalLink className="w-4 h-4 text-slate-500" />
-              <span>Open in New Tab</span>
+              <ExternalLink className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+              <span className="hidden md:inline">Open in New Tab</span>
             </a>
 
             <button
               id="btn-toggle-importer"
               onClick={() => setIsImportOpen(!isImportOpen)}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2 px-4 rounded-lg transition flex items-center space-x-1.5 shadow-sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2 px-3 sm:px-4 rounded-lg transition flex items-center space-x-1.5 shadow-sm"
             >
               <Upload className="w-3.5 h-3.5" />
-              <span>{isImportOpen ? "View Dashboard" : "Import CSV / Excel"}</span>
+              <span className="hidden sm:inline">{isImportOpen ? "View Dashboard" : "Import CSV / Excel"}</span>
+              <span className="inline sm:hidden">{isImportOpen ? "View" : "Import"}</span>
             </button>
           </div>
         </header>

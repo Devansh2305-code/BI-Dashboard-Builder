@@ -497,19 +497,6 @@ export default function ReportCanvas({
       {/* Central Report Builder Area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         
-        {/* PDF Printing Help Banner */}
-        <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-4 flex items-start gap-3 shadow-xs print:hidden">
-          <div className="p-1.5 bg-blue-100 rounded-lg text-blue-700 shrink-0">
-            <HelpCircle className="w-4 h-4 text-blue-600" />
-          </div>
-          <div className="space-y-1">
-            <h4 className="font-bold text-xs text-blue-900">PDF Export Guide</h4>
-            <p className="text-xs text-blue-800 leading-relaxed">
-              If your browser blocks the print window inside this preview, please click the <strong>"Open in New Tab"</strong> button in the top-right corner of the AI Studio frame, then click <strong>"Download Report"</strong> there. Set layout to <strong>Landscape</strong> and enable <strong>Background graphics</strong> in settings for a beautiful export!
-            </p>
-          </div>
-        </div>
-
         {/* Global Dashboard Filter Ribbon */}
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs space-y-3 print:hidden">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">

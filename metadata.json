@@ -1,5 +1,5 @@
 {
-  "name": "BI Dashboard Builder",
+  "name": "DataGlance",
   "description": "An interactive Power BI-style platform allowing users to import raw data, write custom measures, design visual KPI dashboards for roles like CMO and Analyst, generate AI key insights, and export reports.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

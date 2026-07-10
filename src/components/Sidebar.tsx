@@ -9,7 +9,8 @@ import {
   PieChart,
   Grid,
   Users,
-  ChevronDown
+  ChevronDown,
+  X
 } from "lucide-react";
 import { Role } from "../types";
 
@@ -19,6 +20,7 @@ interface SidebarProps {
   activeRole: Role;
   setRole: (role: Role) => void;
   dataLoaded: boolean;
+  onClose?: () => void;
 }
 
 export default function Sidebar({ 
@@ -26,7 +28,8 @@ export default function Sidebar({
   setView, 
   activeRole, 
   setRole,
-  dataLoaded 
+  dataLoaded,
+  onClose
 }: SidebarProps) {
   const views = [
     { id: "report", label: "Report Canvas", icon: LayoutDashboard, desc: "Design & visualize" },
@@ -37,20 +40,43 @@ export default function Sidebar({
 
   const roles: Role[] = ["CMO", "Business Analyst", "CFO", "Sales Director", "HR Specialist", "CEO"];
 
+  const handleRoleChange = (role: Role) => {
+    setRole(role);
+    onClose?.();
+  };
+
+  const handleViewChange = (view: "report" | "data" | "measures" | "ai") => {
+    setView(view);
+    onClose?.();
+  };
+
   return (
     <aside 
       id="sidebar-container" 
       className="w-68 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 flex flex-col h-full shrink-0"
     >
       {/* Brand Header */}
-      <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center space-x-3 bg-slate-50/50 dark:bg-slate-950/40">
-        <div className="bg-blue-600 text-white p-2 rounded-md shadow-sm">
-          <PieChart className="w-5 h-5 stroke-[2.5]" />
+      <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/40">
+        <div className="flex items-center space-x-3">
+          <div className="bg-blue-600 text-white p-2 rounded-md shadow-sm">
+            <PieChart className="w-5 h-5 stroke-[2.5]" />
+          </div>
+          <div>
+            <h1 className="font-bold text-slate-900 dark:text-white tracking-tight text-base">DataGlance</h1>
+            <p className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wider">BI Workspace</p>
+          </div>
         </div>
-        <div>
-          <h1 className="font-bold text-slate-900 dark:text-white tracking-tight text-base">InsightPro</h1>
-          <p className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wider">BI Workspace</p>
-        </div>
+        
+        {onClose && (
+          <button 
+            id="btn-sidebar-close"
+            onClick={onClose}
+            className="lg:hidden p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-850 text-slate-500 dark:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-300"
+            title="Close Sidebar"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Role Picker Section */}
@@ -65,7 +91,7 @@ export default function Sidebar({
           <select
             id="role-select"
             value={activeRole}
-            onChange={(e) => setRole(e.target.value as Role)}
+            onChange={(e) => handleRoleChange(e.target.value as Role)}
             className="w-full pl-9 pr-8 py-2 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:focus:ring-blue-500/30 focus:border-blue-500 transition-all cursor-pointer font-medium appearance-none"
           >
             {roles.map((role) => (
@@ -92,7 +118,7 @@ export default function Sidebar({
             <button
               key={item.id}
               id={`nav-view-${item.id}`}
-              onClick={() => setView(item.id)}
+              onClick={() => handleViewChange(item.id)}
               className={`w-full flex items-start space-x-3 p-2.5 rounded-lg text-left transition-all duration-150 border group cursor-pointer ${
                 isActive
                   ? "bg-blue-50 dark:bg-blue-950/40 border-blue-100 dark:border-blue-900/40 text-blue-700 dark:text-blue-400 font-medium shadow-xs"
