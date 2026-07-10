@@ -233,6 +233,10 @@ async function setupVite() {
   });
 }
 
-setupVite().catch((err) => {
-  console.error("Failed to boot server:", err);
-});
+if (!process.env.VERCEL) {
+  setupVite().catch((err) => {
+    console.error("Failed to boot server:", err);
+  });
+}
+
+export default app;
