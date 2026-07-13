@@ -514,15 +514,9 @@ How can I help you extract value from your active dataset today? You can write c
       const data = await response.json();
       setResult(data);
     } catch (err: any) {
-      console.warn("Gemini API unavailable or config missing. Auto-activating offline local engine fallback.", err);
-      try {
-        const localData = generateLocalHeuristicInsights(dataset, columns, measures, activeRole);
-        setResult(localData);
-        setWasFallbackActivated(true);
-        setInsightMode("local");
-      } catch (fallbackErr: any) {
-        setError(err.message || "Failed to communicate with AI Engine, and local statistical engine also failed.");
-      }
+      console.error("Gemini API error:", err);
+      setError(err.message || "Failed to communicate with Gemini AI Engine.");
+      setResult(null);
     } finally {
       setLoading(false);
     }
@@ -623,14 +617,8 @@ How can I help you extract value from your active dataset today? You can write c
       };
       setChatMessages(prev => [...prev, assistantMsg]);
     } catch (err: any) {
-      console.warn("Chat API error. Falling back to offline heuristics response:", err);
-      const text = generateLocalChatResponse(userQueryText, dataset, columns, measures, activeRole);
-      const assistantMsg: ChatMessage = {
-        id: "reply_" + Date.now(),
-        role: "assistant",
-        content: `*(Fallback activated: offline analytics engine)*\n\n` + text
-      };
-      setChatMessages(prev => [...prev, assistantMsg]);
+      console.error("Chat API error:", err);
+      setChatError(err.message || "Failed to communicate with Gemini AI Chat.");
     } finally {
       setChatLoading(false);
     }
