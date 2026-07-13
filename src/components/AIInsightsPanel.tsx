@@ -843,21 +843,7 @@ How can I help you extract value from your active dataset today? You can write c
             </button>
           </div>
 
-          {/* Automatic Fallback Banner Warning */}
-          {wasFallbackActivated && (
-            <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-amber-900 dark:text-amber-200 rounded-xl flex items-start gap-3 shadow-xs">
-              <AlertTriangle className="w-5 h-5 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
-              <div className="space-y-1 text-xs">
-                <h4 className="font-bold">Offline Analytics Active</h4>
-                <p className="leading-relaxed">
-                  We could not reach the Cloud Gemini API (e.g. key is not configured yet). To protect your workflow, we automatically compiled dynamic report elements using the <strong>Zero-Latency Local Statistical Heuristics Engine</strong>.
-                </p>
-                <p className="text-amber-600 dark:text-amber-400 font-medium">
-                  If you recently configured environment variables, make sure to <strong>redeploy your project on Vercel</strong> for the key to load!
-                </p>
-              </div>
-            </div>
-          )}
+
 
           {/* Loading Screen */}
           {loading && (

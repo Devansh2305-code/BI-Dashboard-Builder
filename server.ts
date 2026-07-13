@@ -3,6 +3,14 @@ import path from "path";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 
+// Load environment variables immediately at server startup
+try {
+  dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
+  dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+} catch (e) {
+  console.warn("Failed to load dotenv files at startup:", e);
+}
+
 const app = express();
 const PORT = 3000;
 
@@ -11,15 +19,6 @@ function getGenAIClient(req?: express.Request): GoogleGenAI {
   let apiKey = (req?.headers["x-gemini-api-key"] as string) || req?.body?.userApiKey;
 
   if (!apiKey) {
-    // Load environment variables dynamically only if the key is not already defined
-    if (!process.env.GEMINI_API_KEY) {
-      try {
-        dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
-        dotenv.config({ path: path.resolve(process.cwd(), ".env") });
-      } catch (e) {
-        console.warn("Failed to load dotenv files:", e);
-      }
-    }
     apiKey = process.env.GEMINI_API_KEY;
   }
 
