@@ -6,22 +6,37 @@ function sanitizeApiKey(value?: string) {
   return value.replace(/[\r\n\t]/g, "").trim().replace(/^["']|["']$/g, "");
 }
 
-function getGenAIClient(req?: VercelRequest): GoogleGenAI {
-  const headerKeyRaw = req?.headers?.["x-gemini-api-key"];
-  const headerKey = Array.isArray(headerKeyRaw) ? headerKeyRaw[0] : (headerKeyRaw as string | undefined);
-  const bodyKey = req?.body?.userApiKey as string | undefined;
-  const envKey = process.env.GEMINI_API_KEY;
+function resolveApiKey(req: VercelRequest) {
+  const envKey = sanitizeApiKey(process.env.GEMINI_API_KEY);
 
-  const apiKey = sanitizeApiKey(headerKey || bodyKey || envKey);
+  const headerRaw = req.headers?.["x-gemini-api-key"];
+  const headerKey = sanitizeApiKey(
+    Array.isArray(headerRaw) ? headerRaw[0] : (headerRaw as string | undefined)
+  );
 
-  if (!apiKey) {
+  const bodyKey = sanitizeApiKey(req.body?.userApiKey as string | undefined);
+
+  // Default: server env key. Optional override: header/body key if provided.
+  const effectiveKey = headerKey || bodyKey || envKey;
+
+  return {
+    effectiveKey,
+    hasEnvKey: !!envKey,
+    usingUserOverride: !!(headerKey || bodyKey),
+  };
+}
+
+function getGenAIClient(req: VercelRequest): GoogleGenAI {
+  const { effectiveKey } = resolveApiKey(req);
+
+  if (!effectiveKey) {
     throw new Error(
-      "GEMINI_API_KEY is not defined. Please configure GEMINI_API_KEY in Vercel Environment Variables, or supply your custom key in dashboard settings."
+      "GEMINI_API_KEY is not defined. Please configure GEMINI_API_KEY in Vercel Environment Variables, or supply a custom key."
     );
   }
 
   return new GoogleGenAI({
-    apiKey,
+    apiKey: effectiveKey,
     httpOptions: {
       headers: {
         "User-Agent": "aistudio-build",
@@ -49,11 +64,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(503).json({
         error:
           e?.message ||
-          "AI Chat is currently unavailable (Gemini API key is not configured). Please check your Environment Variables.",
+          "AI Chat is currently unavailable (Gemini API key is not configured). Please check Environment Variables.",
       });
     }
 
-    const sampleSize = Math.min(data?.length || 0, 85);
+    const sampleSize = Math.min(Array.isArray(data) ? data.length : 0, 85);
     const dataSample = Array.isArray(data) ? data.slice(0, sampleSize) : [];
 
     const systemInstruction = `
@@ -70,7 +85,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       Please address the user's specific query. Use professional, analytical, yet simple, clear, and business-focused communication.
       Formulate calculations, highlight exceptions or trends, and propose strategic actions where appropriate.
       Use Markdown formatting (bold keywords, neat bullet points, small markdown tables) to organize information beautifully.
-      Keep answers concise, direct, and fully grounded in the actual dataset context.
+      Keep answers concise, direct, and fully grounded in the actual dataset context. Avoid saying things like "Based on the sample..." unless requested.
     `;
 
     const contents = messages.map((msg: any) => ({
@@ -97,9 +112,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         message = "API key not valid. Please pass a valid Gemini API key.";
       } else if (typeof message === "string" && message.startsWith("{")) {
         const parsed = JSON.parse(message);
-        if (parsed?.error?.message) message = parsed.error.message;
+        if (parsed?.error?.message) {
+          message = parsed.error.message;
+        }
       }
-    } catch {}
+    } catch {
+      // ignore parsing fallback
+    }
 
     return res.status(500).json({ error: message });
   }
