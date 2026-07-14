@@ -12,7 +12,7 @@ try {
 }
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 // Helper to lazily load and initialize the Gemini API client
 function getGenAIClient(req?: express.Request): GoogleGenAI {
