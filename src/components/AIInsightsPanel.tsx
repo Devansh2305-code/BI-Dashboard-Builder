@@ -801,40 +801,14 @@ How can I help you extract value from your active dataset today? You can write c
           {/* Engine Selector Segment */}
           <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs">
             <div className="space-y-1">
-              <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 font-mono tracking-wider">Analysis Engine Core</span>
+              <span className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 font-mono tracking-wider">Analysis Engine Core</span>
               <p className="text-slate-600 dark:text-slate-300 font-medium">
-                Choose between server-side AI or client-side statistical heuristics.
+                Generating rich, multi-dimensional analytical insights using the real-time **Gemini AI model** based strictly on your uploaded dataset.
               </p>
             </div>
-            <div className="flex bg-slate-200/60 dark:bg-slate-900 p-1 rounded-lg border border-slate-300/40 dark:border-slate-800 shadow-3xs">
-              <button
-                onClick={() => {
-                  setInsightMode("gemini");
-                  setWasFallbackActivated(false);
-                }}
-                className={`px-3 py-1.5 rounded-md font-semibold transition-all flex items-center gap-1.5 cursor-pointer text-xs ${
-                  insightMode === "gemini"
-                    ? "bg-blue-600 text-white shadow-2xs"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                <span>Cloud Gemini (AI-Powered)</span>
-              </button>
-              <button
-                onClick={() => {
-                  setInsightMode("local");
-                  setWasFallbackActivated(false);
-                }}
-                className={`px-3 py-1.5 rounded-md font-semibold transition-all flex items-center gap-1.5 cursor-pointer text-xs ${
-                  insightMode === "local"
-                    ? "bg-blue-600 text-white shadow-2xs"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                }`}
-              >
-                <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Local Statistical Heuristics</span>
-              </button>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20 shadow-3xs shrink-0 select-none">
+              <Sparkles className="w-3.5 h-3.5 text-blue-500 animate-pulse" />
+              <span>Gemini Engine Active</span>
             </div>
           </div>
 
@@ -1106,12 +1080,8 @@ How can I help you extract value from your active dataset today? You can write c
               <div>
                 <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                   <span>Live BI Conversational Partner</span>
-                  <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                    insightMode === "gemini" 
-                      ? "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400" 
-                      : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
-                  }`}>
-                    {insightMode === "gemini" ? "Gemini Engine" : "Local Engine"}
+                  <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400">
+                    Gemini Engine
                   </span>
                 </h4>
                 <p className="text-[10px] text-slate-400 dark:text-slate-500">Context: {dataset.length} active rows grounded directly in active report metrics</p>
