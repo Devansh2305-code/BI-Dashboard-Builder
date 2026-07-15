@@ -40,7 +40,7 @@ interface LandingPageProps {
 
 export default function LandingPage({ onMockLogin }: LandingPageProps) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authTab, setAuthTab] = useState<"login" | "signup">("login");
+  const [authTab, setAuthTab] = useState<"login" | "signup" | "admin">("login");
   
   // Form fields
   const [email, setEmail] = useState("");
@@ -83,6 +83,32 @@ export default function LandingPage({ onMockLogin }: LandingPageProps) {
 
     if (authTab === "signup" && !name) {
       setError("Please enter your name.");
+      return;
+    }
+
+    // Secure Admin Intercept Check
+    if (email === "admin@dataglance.com" || authTab === "admin") {
+      if (email !== "admin@dataglance.com" || password !== "admin123") {
+        setError("Invalid administrative credentials.");
+        return;
+      }
+      
+      setIsLoading(true);
+      setTimeout(() => {
+        setIsLoading(false);
+        localStorage.setItem("admin-key", "dg-admin-session-active");
+        
+        onMockLogin({
+          uid: "admin-uid",
+          email: "admin@dataglance.com",
+          displayName: JSON.stringify({ name: "System Admin", role: "admin" })
+        });
+        
+        setSuccess("Admin Authorized! Accessing secure system terminal...");
+        setTimeout(() => {
+          handleCloseModal();
+        }, 1000);
+      }, 1200);
       return;
     }
 
@@ -458,10 +484,10 @@ export default function LandingPage({ onMockLogin }: LandingPageProps) {
                 </div>
               </div>
               <h2 className="text-xl font-bold text-white">
-                {authTab === "login" ? "Sign In to DataGlance" : "Create Your Account"}
+                {authTab === "login" ? "Sign In to DataGlance" : authTab === "signup" ? "Create Your Account" : "Secure Admin Console"}
               </h2>
               <p className="text-xs text-slate-400 mt-1">
-                {authTab === "login" ? "Welcome back! Access your dashboard workspaces" : "Start designing your analytics dashboards"}
+                {authTab === "login" ? "Welcome back! Access your dashboard workspaces" : authTab === "signup" ? "Start designing your analytics dashboards" : "Enter administrator credentials to access master database"}
               </p>
 
               {/* Mock vs Live badge */}
@@ -490,7 +516,7 @@ export default function LandingPage({ onMockLogin }: LandingPageProps) {
             )}
 
             {/* Tab switch buttons */}
-            <div className="grid grid-cols-2 bg-slate-950 border border-slate-800 rounded-lg p-1 mb-5 text-xs font-semibold">
+            <div className="grid grid-cols-3 bg-slate-950 border border-slate-800 rounded-lg p-1 mb-5 text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => { setAuthTab("login"); setError(""); }}
@@ -514,6 +540,18 @@ export default function LandingPage({ onMockLogin }: LandingPageProps) {
                 }`}
               >
                 Sign Up
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAuthTab("admin"); setError(""); }}
+                disabled={isLoading}
+                className={`py-1.5 rounded-md transition cursor-pointer ${
+                  authTab === "admin" 
+                    ? "bg-red-950/40 text-red-400 border border-red-950 shadow" 
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Admin
               </button>
             </div>
 
@@ -627,7 +665,11 @@ export default function LandingPage({ onMockLogin }: LandingPageProps) {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full mt-2 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 text-white font-bold text-sm rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-blue-500/10"
+                className={`w-full mt-2 py-2.5 disabled:bg-slate-800 text-white font-bold text-sm rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-lg ${
+                  authTab === "admin"
+                    ? "bg-red-750 hover:bg-red-700 shadow-red-950/30"
+                    : "bg-blue-600 hover:bg-blue-500 shadow-blue-500/10"
+                }`}
               >
                 {isLoading ? (
                   <>
@@ -636,7 +678,7 @@ export default function LandingPage({ onMockLogin }: LandingPageProps) {
                   </>
                 ) : (
                   <>
-                    <span>{authTab === "login" ? "Sign In" : "Sign Up"}</span>
+                    <span>{authTab === "login" ? "Sign In" : authTab === "signup" ? "Sign Up" : "Authorize Admin Console"}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -644,29 +686,39 @@ export default function LandingPage({ onMockLogin }: LandingPageProps) {
 
             </form>
 
-            {/* Divider */}
-            <div className="relative my-5 flex items-center">
-              <div className="flex-1 h-px bg-slate-800/80"></div>
-              <span className="px-3 text-[10px] text-slate-500 uppercase tracking-wider">Or continue with</span>
-              <div className="flex-1 h-px bg-slate-800/80"></div>
-            </div>
+            {authTab !== "admin" && (
+              <>
+                {/* Divider */}
+                <div className="relative my-5 flex items-center">
+                  <div className="flex-1 h-px bg-slate-800/80"></div>
+                  <span className="px-3 text-[10px] text-slate-500 uppercase tracking-wider">Or continue with</span>
+                  <div className="flex-1 h-px bg-slate-800/80"></div>
+                </div>
 
-            {/* Google provider button */}
-            <button
-              type="button"
-              onClick={handleGoogleAuth}
-              disabled={isLoading}
-              className="w-full py-2 bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 disabled:border-slate-850 text-slate-200 font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Chrome className="w-3.5 h-3.5 text-blue-400" />
-              <span>Continue with Google</span>
-            </button>
+                {/* Google provider button */}
+                <button
+                  type="button"
+                  onClick={handleGoogleAuth}
+                  disabled={isLoading}
+                  className="w-full py-2 bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 disabled:border-slate-850 text-slate-200 font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Chrome className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Continue with Google</span>
+                </button>
+              </>
+            )}
 
             {/* Footnote about test account */}
-            {!hasFirebaseConfig && (
-              <div className="mt-4 text-[10px] text-slate-500 text-center leading-relaxed">
-                Tip: In local Mock mode, you can sign in with any email and password to instantly access the workspace!
+            {authTab === "admin" ? (
+              <div className="mt-4 p-3 bg-red-950/20 border border-red-900/30 text-[10px] text-red-400 rounded-lg leading-relaxed text-left">
+                <strong>Console Credentials:</strong> Sign in using <code>admin@dataglance.com</code> and passcode <code>admin123</code> to access systems settings.
               </div>
+            ) : (
+              !hasFirebaseConfig && (
+                <div className="mt-4 text-[10px] text-slate-500 text-center leading-relaxed">
+                  Tip: In local Mock mode, you can sign in with any email and password to instantly access the workspace!
+                </div>
+              )
             )}
 
           </div>

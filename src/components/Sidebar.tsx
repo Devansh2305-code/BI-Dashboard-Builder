@@ -67,7 +67,7 @@ export default function Sidebar({
     onClose?.();
   };
 
-  const handleViewChange = (view: "report" | "data" | "measures" | "ai" | "admin") => {
+  const handleViewChange = (view: "report" | "data" | "measures" | "ai" | "admin" | "billing") => {
     setView(view);
     onClose?.();
   };

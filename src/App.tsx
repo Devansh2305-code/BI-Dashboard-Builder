@@ -381,6 +381,62 @@ export default function App() {
     }
   }, [currentUser]);
 
+  // Synchronize master bi-global-users database for Admin Console visibility
+  useEffect(() => {
+    if (!currentUser) return;
+    const uid = currentUser.uid;
+    const email = currentUser.email || "no-email@dataglance.com";
+    
+    // Skip system admin
+    if (email === "admin@dataglance.com") return;
+
+    const roleJson = currentUser.displayName || '{"name":"User","role":"Business Analyst"}';
+    let parsedRole = "Business Analyst";
+    let userName = "User";
+    try {
+      const p = JSON.parse(roleJson);
+      parsedRole = p.role || "Business Analyst";
+      userName = p.name || "User";
+    } catch (e) {}
+
+    const stored = localStorage.getItem("bi-global-users");
+    let list: any[] = stored ? JSON.parse(stored) : [];
+
+    const existingIdx = list.findIndex(u => u.userId === uid);
+    if (existingIdx === -1) {
+      list.push({
+        userId: uid,
+        email,
+        name: userName,
+        role: parsedRole,
+        plan: userPlan,
+        analysesLeft,
+        projectSlots,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      localStorage.setItem("bi-global-users", JSON.stringify(list));
+    } else {
+      let changed = false;
+      if (list[existingIdx].plan !== userPlan) {
+        list[existingIdx].plan = userPlan;
+        changed = true;
+      }
+      if (list[existingIdx].analysesLeft !== analysesLeft) {
+        list[existingIdx].analysesLeft = analysesLeft;
+        changed = true;
+      }
+      if (list[existingIdx].projectSlots !== projectSlots) {
+        list[existingIdx].projectSlots = projectSlots;
+        changed = true;
+      }
+      if (changed) {
+        list[existingIdx].updatedAt = new Date().toISOString();
+        localStorage.setItem("bi-global-users", JSON.stringify(list));
+      }
+    }
+  }, [currentUser, userPlan, analysesLeft, projectSlots]);
+
   const handleDecrementAnalyses = () => {
     if (userPlan !== "free") return; // Premium plans have unlimited narratives
     const uid = currentUser?.uid || "anonymous";
@@ -497,6 +553,14 @@ export default function App() {
   const handleMockLogin = (mockUser: { uid: string; email: string; displayName: string }) => {
     setCurrentUser(mockUser);
     localStorage.setItem("bi-mock-user", JSON.stringify(mockUser));
+    
+    // Check if logging in as Admin
+    if (mockUser.email === "admin@dataglance.com") {
+      setIsAdminMode(true);
+      setView("admin");
+      return;
+    }
+
     if (mockUser.displayName) {
       try {
         const profile = JSON.parse(mockUser.displayName);
@@ -510,6 +574,9 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    localStorage.removeItem("admin-key");
+    setIsAdminMode(false);
+    
     if (hasFirebaseConfig && auth) {
       try {
         await signOut(auth);
@@ -905,7 +972,7 @@ export default function App() {
         </header>
 
         <main className="flex-1 overflow-hidden print:overflow-visible">
-          {isAdminMode ? (
+          {currentView === "admin" && isAdminMode ? (
             <AdminPanel />
           ) : isImportOpen ? (
             <div className="h-full overflow-y-auto p-6 bg-slate-50">
