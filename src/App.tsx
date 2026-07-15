@@ -18,7 +18,8 @@ import { Role, ColumnMetadata, Measure, Widget, AIAnalysisResult, PlanType, Save
 import { getTemplateForRole } from "./utils";
 import { downloadHTMLReport } from "./reportGenerator";
 import { onAuthStateChanged, signOut, updateProfile } from "firebase/auth";
-import { auth, hasFirebaseConfig } from "./firebase";
+import { auth, hasFirebaseConfig, db } from "./firebase";
+import { doc, setDoc } from "firebase/firestore";
 import { 
   Database, 
   RefreshCw, 
@@ -403,8 +404,11 @@ export default function App() {
     let list: any[] = stored ? JSON.parse(stored) : [];
 
     const existingIdx = list.findIndex(u => u.userId === uid);
+    let changed = false;
+    let userObj: any = null;
+
     if (existingIdx === -1) {
-      list.push({
+      userObj = {
         userId: uid,
         email,
         name: userName,
@@ -414,25 +418,51 @@ export default function App() {
         projectSlots,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
-      });
-      localStorage.setItem("bi-global-users", JSON.stringify(list));
+      };
+      list.push(userObj);
+      changed = true;
     } else {
-      let changed = false;
-      if (list[existingIdx].plan !== userPlan) {
-        list[existingIdx].plan = userPlan;
+      userObj = { ...list[existingIdx] };
+      if (userObj.plan !== userPlan) {
+        userObj.plan = userPlan;
         changed = true;
       }
-      if (list[existingIdx].analysesLeft !== analysesLeft) {
-        list[existingIdx].analysesLeft = analysesLeft;
+      if (userObj.analysesLeft !== analysesLeft) {
+        userObj.analysesLeft = analysesLeft;
         changed = true;
       }
-      if (list[existingIdx].projectSlots !== projectSlots) {
-        list[existingIdx].projectSlots = projectSlots;
+      if (userObj.projectSlots !== projectSlots) {
+        userObj.projectSlots = projectSlots;
         changed = true;
       }
       if (changed) {
-        list[existingIdx].updatedAt = new Date().toISOString();
-        localStorage.setItem("bi-global-users", JSON.stringify(list));
+        userObj.updatedAt = new Date().toISOString();
+        list[existingIdx] = userObj;
+      }
+    }
+
+    if (changed) {
+      localStorage.setItem("bi-global-users", JSON.stringify(list));
+    }
+
+    // Always push updates to Firestore if configured to ensure other browsers see it
+    if (db) {
+      try {
+        setDoc(doc(db, "users", uid), {
+          userId: uid,
+          email,
+          name: userName,
+          role: parsedRole,
+          plan: userPlan,
+          analysesLeft,
+          projectSlots,
+          createdAt: userObj?.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }, { merge: true }).catch(err => {
+          console.warn("Firestore user sync failed (permissions or configurations issue):", err);
+        });
+      } catch (e) {
+        console.warn("Firestore sync trigger failed:", e);
       }
     }
   }, [currentUser, userPlan, analysesLeft, projectSlots]);

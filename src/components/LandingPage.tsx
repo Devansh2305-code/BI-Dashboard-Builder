@@ -183,7 +183,7 @@ export default function LandingPage({ onMockLogin }: LandingPageProps) {
       // --- REAL FIREBASE GOOGLE SIGN-IN ---
       try {
         await signInWithPopup(auth, googleProvider);
-        setSuccess("Signed in with Google! Redirecting...");
+        setSuccess("Logged in with Google! Redirecting...");
         setTimeout(() => {
           handleCloseModal();
         }, 1000);
@@ -193,7 +193,7 @@ export default function LandingPage({ onMockLogin }: LandingPageProps) {
         if (err.code === "auth/unauthorized-domain") {
           friendlyMessage = `Unauthorized Domain: Please add "${window.location.hostname}" to the "Authorized Domains" list in your Firebase Console (Authentication > Settings > Authorized Domains).`;
         }
-        setError(friendlyMessage || "Failed to sign in with Google.");
+        setError(friendlyMessage || "Failed to login with Google.");
       } finally {
         setIsLoading(false);
       }
@@ -206,7 +206,7 @@ export default function LandingPage({ onMockLogin }: LandingPageProps) {
           email: "google.user@example.com",
           displayName: "" // Empty so that RoleOnboarding gets triggered
         });
-        setSuccess("Mock Google sign-in successful!");
+        setSuccess("Mock Google login successful!");
         setTimeout(() => {
           handleCloseModal();
         }, 1000);
@@ -241,7 +241,7 @@ export default function LandingPage({ onMockLogin }: LandingPageProps) {
               onClick={() => handleOpenModal("login")}
               className="text-sm font-semibold text-slate-300 hover:text-white transition-colors cursor-pointer"
             >
-              Sign In
+              Login
             </button>
             <button 
               type="button"
@@ -485,7 +485,7 @@ export default function LandingPage({ onMockLogin }: LandingPageProps) {
                 </div>
               </div>
               <h2 className="text-xl font-bold text-white">
-                {authTab === "login" ? "Sign In to DataGlance" : authTab === "signup" ? "Create Your Account" : "Secure Admin Console"}
+                {authTab === "login" ? "Login to DataGlance" : authTab === "signup" ? "Create Your Account" : "Secure Admin Console"}
               </h2>
               <p className="text-xs text-slate-400 mt-1">
                 {authTab === "login" ? "Welcome back! Access your dashboard workspaces" : authTab === "signup" ? "Start designing your analytics dashboards" : "Enter administrator credentials to access master database"}
@@ -528,7 +528,7 @@ export default function LandingPage({ onMockLogin }: LandingPageProps) {
                     : "text-slate-400 hover:text-slate-200"
                 }`}
               >
-                Sign In
+                Login
               </button>
               <button
                 type="button"
@@ -679,7 +679,7 @@ export default function LandingPage({ onMockLogin }: LandingPageProps) {
                   </>
                 ) : (
                   <>
-                    <span>{authTab === "login" ? "Sign In" : authTab === "signup" ? "Sign Up" : "Authorize Admin Console"}</span>
+                    <span>{authTab === "login" ? "Login" : authTab === "signup" ? "Sign Up" : "Authorize Admin Console"}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}

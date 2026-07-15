@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { UserPlan, AdminAnalytics, SystemConfiguration, AuditLog, PlanType } from "../types";
+import { db } from "../firebase";
+import { collection, getDocs, doc, setDoc, deleteDoc } from "firebase/firestore";
 import {
   Users,
   Settings,
@@ -61,14 +63,52 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  // Fetch users from localStorage master list
+  // Fetch users from localStorage master list and Firestore
   const fetchUsers = async () => {
     setLoading(true);
     try {
       const stored = localStorage.getItem("bi-global-users");
-      if (stored) {
-        setUsers(JSON.parse(stored));
-      } else {
+      let list: UserPlan[] = stored ? JSON.parse(stored) : [];
+
+      if (db) {
+        try {
+          const querySnapshot = await getDocs(collection(db, "users"));
+          const firestoreUsers: UserPlan[] = [];
+          querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            firestoreUsers.push({
+              userId: data.userId || doc.id,
+              email: data.email || "",
+              plan: data.plan || "free",
+              createdAt: data.createdAt || new Date().toISOString(),
+              updatedAt: data.updatedAt || new Date().toISOString(),
+              features: data.features || {
+                maxDatasets: data.projectSlots || 1,
+                maxRows: 100000,
+                aiAnalysisCount: data.analysesLeft || 5,
+                customReports: data.plan !== "free",
+                advancedCharts: data.plan !== "free",
+                exportFormats: ["csv", "xlsx"]
+              }
+            } as any);
+          });
+
+          if (firestoreUsers.length > 0) {
+            const mergedList = [...firestoreUsers];
+            list.forEach(lu => {
+              if (!mergedList.some(fu => fu.userId === lu.userId)) {
+                mergedList.push(lu);
+              }
+            });
+            list = mergedList;
+            localStorage.setItem("bi-global-users", JSON.stringify(list));
+          }
+        } catch (fsErr) {
+          console.warn("Firestore user fetch failed (rules or configuration issue):", fsErr);
+        }
+      }
+
+      if (list.length === 0) {
         const initialMock: UserPlan[] = [
           {
             userId: "mock-user-1",
@@ -87,8 +127,10 @@ const AdminPanel: React.FC = () => {
           }
         ];
         localStorage.setItem("bi-global-users", JSON.stringify(initialMock));
-        setUsers(initialMock);
+        list = initialMock;
       }
+
+      setUsers(list);
       setError(null);
     } catch (err: any) {
       setError(err.message);
@@ -176,7 +218,7 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  // Create new user in localStorage
+  // Create new user in localStorage and Firestore
   const handleCreateUser = async () => {
     try {
       if (!newUserForm.userId || !newUserForm.email) {
@@ -222,6 +264,25 @@ const AdminPanel: React.FC = () => {
       localStorage.setItem(`bi-credits-${newUserForm.userId}`, String(credits));
       localStorage.setItem(`bi-slots-${newUserForm.userId}`, String(slots));
 
+      // Push to Firestore if database is active
+      if (db) {
+        try {
+          await setDoc(doc(db, "users", newUserForm.userId), {
+            userId: newUserForm.userId,
+            email: newUserForm.email,
+            name: newUserForm.userId,
+            role: "Business Analyst",
+            plan,
+            analysesLeft: credits,
+            projectSlots: slots,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          });
+        } catch (fsErr) {
+          console.warn("Firestore user creation failed:", fsErr);
+        }
+      }
+
       addAuditLog("USER_CREATED", newUserForm.userId, { plan, email: newUserForm.email });
       setSuccess("User created successfully");
       setShowUserModal(false);
@@ -232,7 +293,7 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  // Update user plan
+  // Update user plan in localStorage and Firestore
   const handleUpdatePlan = async () => {
     if (!selectedUser) return;
     try {
@@ -259,6 +320,20 @@ const AdminPanel: React.FC = () => {
       localStorage.setItem(`bi-credits-${selectedUser.userId}`, String(credits));
       localStorage.setItem(`bi-slots-${selectedUser.userId}`, String(slots));
 
+      // Push to Firestore if database is active
+      if (db) {
+        try {
+          await setDoc(doc(db, "users", selectedUser.userId), {
+            plan,
+            projectSlots: slots,
+            analysesLeft: credits,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+        } catch (fsErr) {
+          console.warn("Firestore plan update failed:", fsErr);
+        }
+      }
+
       addAuditLog("PLAN_UPDATED", selectedUser.userId, { from: oldPlan, to: plan });
       setSuccess("Plan updated successfully");
       setShowEditModal(false);
@@ -268,7 +343,7 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  // Delete user
+  // Delete user from localStorage and Firestore
   const handleDeleteUser = async (userId: string) => {
     if (!confirm("Are you sure you want to delete this user?")) return;
     try {
@@ -283,6 +358,15 @@ const AdminPanel: React.FC = () => {
       localStorage.removeItem(`bi-credits-${userId}`);
       localStorage.removeItem(`bi-slots-${userId}`);
       localStorage.removeItem(`bi-projects-${userId}`);
+
+      // Delete from Firestore if database is active
+      if (db) {
+        try {
+          await deleteDoc(doc(db, "users", userId));
+        } catch (fsErr) {
+          console.warn("Firestore user deletion failed:", fsErr);
+        }
+      }
 
       addAuditLog("USER_DELETED", userId, {});
       setSuccess("User deleted successfully");
