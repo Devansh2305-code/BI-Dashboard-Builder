@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { UserPlan, AdminAnalytics, SystemConfiguration, AuditLog, PlanType } from "../types";
-import { db } from "../firebase";
-import { collection, getDocs, doc, setDoc, deleteDoc, getDoc } from "firebase/firestore";
+import { supabase, hasSupabaseConfig } from "../supabase";
 import {
   Users,
   Settings,
@@ -69,33 +68,33 @@ const AdminPanel: React.FC = () => {
     try {
       let list: UserPlan[] = [];
 
-      if (db) {
+      if (hasSupabaseConfig) {
         try {
-          const querySnapshot = await getDocs(collection(db, "users"));
-          const firestoreUsers: UserPlan[] = [];
-          querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            firestoreUsers.push({
-              userId: data.userId || doc.id,
-              email: data.email || "",
-              plan: data.plan || "free",
-              createdAt: data.createdAt || new Date().toISOString(),
-              updatedAt: data.updatedAt || new Date().toISOString(),
-              features: data.features || {
-                maxDatasets: data.projectSlots || 1,
-                maxRows: 100000,
-                aiAnalysisCount: data.analysesLeft || 5,
-                customReports: data.plan !== "free",
-                advancedCharts: data.plan !== "free",
-                exportFormats: ["csv", "xlsx"]
-              }
-            } as any);
-          });
+          const { data: usersData, error: fsErr } = await supabase
+            .from("users")
+            .select("*");
+          if (fsErr) throw fsErr;
           
-          list = firestoreUsers;
+          const dbUsers: UserPlan[] = (usersData || []).map((data: any) => ({
+            userId: data.user_id,
+            email: data.email || "",
+            plan: data.plan || "free",
+            createdAt: data.created_at || new Date().toISOString(),
+            updatedAt: data.updated_at || new Date().toISOString(),
+            features: {
+              maxDatasets: data.project_slots || 1,
+              maxRows: 100000,
+              aiAnalysisCount: data.analyses_left || 5,
+              customReports: data.plan !== "free",
+              advancedCharts: data.plan !== "free",
+              exportFormats: ["csv", "xlsx"]
+            }
+          } as any));
+          
+          list = dbUsers;
           localStorage.setItem("bi-global-users", JSON.stringify(list));
         } catch (fsErr) {
-          console.warn("Firestore user fetch failed (rules or configuration issue):", fsErr);
+          console.warn("Supabase user fetch failed:", fsErr);
           const stored = localStorage.getItem("bi-global-users");
           list = stored ? JSON.parse(stored) : [];
         }
@@ -205,22 +204,25 @@ const AdminPanel: React.FC = () => {
         config = JSON.parse(stored);
       }
 
-      if (db) {
+      if (hasSupabaseConfig) {
         try {
-          const configSnap = await getDoc(doc(db, "system", "config"));
-          if (configSnap.exists()) {
-            const data = configSnap.data();
+          const { data, error: fsErr } = await supabase
+            .from("system_config")
+            .select("*")
+            .eq("id", 1)
+            .single();
+          if (data && !fsErr) {
             config = {
-              maintenanceMode: data.maintenanceMode !== undefined ? data.maintenanceMode : config.maintenanceMode,
-              maxFileSize: data.maxFileSize !== undefined ? data.maxFileSize : config.maxFileSize,
-              enableAiAnalysis: data.enableAiAnalysis !== undefined ? data.enableAiAnalysis : config.enableAiAnalysis,
-              enableCustomReports: data.enableCustomReports !== undefined ? data.enableCustomReports : config.enableCustomReports,
-              defaultTimeout: data.defaultTimeout !== undefined ? data.defaultTimeout : config.defaultTimeout
+              maintenanceMode: data.maintenance_mode !== undefined ? data.maintenance_mode : config.maintenanceMode,
+              maxFileSize: data.max_file_size !== undefined ? data.max_file_size : config.maxFileSize,
+              enableAiAnalysis: data.enable_ai_analysis !== undefined ? data.enable_ai_analysis : config.enableAiAnalysis,
+              enableCustomReports: data.enable_custom_reports !== undefined ? data.enable_custom_reports : config.enableCustomReports,
+              defaultTimeout: data.default_timeout !== undefined ? data.default_timeout : config.defaultTimeout
             };
             localStorage.setItem("bi-system-config", JSON.stringify(config));
           }
         } catch (fsErr) {
-          console.warn("Firestore config fetch failed:", fsErr);
+          console.warn("Supabase config fetch failed:", fsErr);
         }
       }
 
@@ -279,22 +281,24 @@ const AdminPanel: React.FC = () => {
       localStorage.setItem(`bi-credits-${newUserForm.userId}`, String(credits));
       localStorage.setItem(`bi-slots-${newUserForm.userId}`, String(slots));
 
-      // Push to Firestore if database is active
-      if (db) {
+      // Push to Supabase if database is active
+      if (hasSupabaseConfig) {
         try {
-          await setDoc(doc(db, "users", newUserForm.userId), {
-            userId: newUserForm.userId,
-            email: newUserForm.email,
-            name: newUserForm.userId,
-            role: "Business Analyst",
-            plan,
-            analysesLeft: credits,
-            projectSlots: slots,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          });
+          const { error: fsErr } = await supabase
+            .from("users")
+            .upsert({
+              user_id: newUserForm.userId,
+              email: newUserForm.email,
+              name: newUserForm.userId,
+              role: "Business Analyst",
+              plan,
+              analyses_left: credits,
+              project_slots: slots,
+              updated_at: new Date().toISOString()
+            });
+          if (fsErr) throw fsErr;
         } catch (fsErr) {
-          console.warn("Firestore user creation failed:", fsErr);
+          console.warn("Supabase user creation failed:", fsErr);
         }
       }
 
@@ -335,17 +339,21 @@ const AdminPanel: React.FC = () => {
       localStorage.setItem(`bi-credits-${selectedUser.userId}`, String(credits));
       localStorage.setItem(`bi-slots-${selectedUser.userId}`, String(slots));
 
-      // Push to Firestore if database is active
-      if (db) {
+      // Push to Supabase if database is active
+      if (hasSupabaseConfig) {
         try {
-          await setDoc(doc(db, "users", selectedUser.userId), {
-            plan,
-            projectSlots: slots,
-            analysesLeft: credits,
-            updatedAt: new Date().toISOString()
-          }, { merge: true });
+          const { error: fsErr } = await supabase
+            .from("users")
+            .update({
+              plan,
+              project_slots: slots,
+              analyses_left: credits,
+              updated_at: new Date().toISOString()
+            })
+            .eq("user_id", selectedUser.userId);
+          if (fsErr) throw fsErr;
         } catch (fsErr) {
-          console.warn("Firestore plan update failed:", fsErr);
+          console.warn("Supabase plan update failed:", fsErr);
         }
       }
 
@@ -374,12 +382,16 @@ const AdminPanel: React.FC = () => {
       localStorage.removeItem(`bi-slots-${userId}`);
       localStorage.removeItem(`bi-projects-${userId}`);
 
-      // Delete from Firestore if database is active
-      if (db) {
+      // Delete from Supabase if database is active
+      if (hasSupabaseConfig) {
         try {
-          await deleteDoc(doc(db, "users", userId));
+          const { error: fsErr } = await supabase
+            .from("users")
+            .delete()
+            .eq("user_id", userId);
+          if (fsErr) throw fsErr;
         } catch (fsErr) {
-          console.warn("Firestore user deletion failed:", fsErr);
+          console.warn("Supabase user deletion failed:", fsErr);
         }
       }
 
@@ -415,11 +427,23 @@ const AdminPanel: React.FC = () => {
         setNewAdminPassword("");
       }
 
-      if (db) {
+      if (hasSupabaseConfig) {
         try {
-          await setDoc(doc(db, "system", "config"), payload, { merge: true });
+          const { error: fsErr } = await supabase
+            .from("system_config")
+            .upsert({
+              id: 1,
+              maintenance_mode: systemConfig.maintenanceMode,
+              max_file_size: systemConfig.maxFileSize,
+              enable_ai_analysis: systemConfig.enableAiAnalysis,
+              enable_custom_reports: systemConfig.enableCustomReports,
+              default_timeout: systemConfig.defaultTimeout,
+              admin_password: payload.adminPassword || undefined,
+              updated_at: new Date().toISOString()
+            });
+          if (fsErr) throw fsErr;
         } catch (fsErr) {
-          console.warn("Firestore config save failed:", fsErr);
+          console.warn("Supabase config save failed:", fsErr);
         }
       }
 

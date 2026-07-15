@@ -18,8 +18,8 @@ import { Role, ColumnMetadata, Measure, Widget, AIAnalysisResult, PlanType, Save
 import { getTemplateForRole } from "./utils";
 import { downloadHTMLReport } from "./reportGenerator";
 import { onAuthStateChanged, signOut, updateProfile } from "firebase/auth";
-import { auth, hasFirebaseConfig, db } from "./firebase";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { auth, hasFirebaseConfig } from "./firebase";
+import { supabase, hasSupabaseConfig } from "./supabase";
 import { 
   Database, 
   RefreshCw, 
@@ -384,15 +384,18 @@ export default function App() {
       setSavedProjects([]);
     }
 
-    // 2. Fetch from Firestore for real-time cross-device sync
-    if (db && uid !== "admin-uid") {
-      getDoc(doc(db, "users", uid))
-        .then((docSnap) => {
-          if (docSnap.exists()) {
-            const data = docSnap.data();
+    // 2. Fetch from Supabase for real-time cross-device sync
+    if (hasSupabaseConfig && uid !== "admin-uid" && uid !== "anonymous") {
+      supabase
+        .from("users")
+        .select("*")
+        .eq("user_id", uid)
+        .single()
+        .then(({ data, error }) => {
+          if (data && !error) {
             const serverPlan = data.plan as PlanType || "free";
-            const serverCredits = data.analysesLeft !== undefined ? Number(data.analysesLeft) : 5;
-            const serverSlots = data.projectSlots !== undefined ? Number(data.projectSlots) : (serverPlan === "free" ? 1 : serverPlan === "prime" ? 5 : serverPlan === "apex" ? 60 : 1);
+            const serverCredits = data.analyses_left !== undefined ? Number(data.analyses_left) : 5;
+            const serverSlots = data.project_slots !== undefined ? Number(data.project_slots) : (serverPlan === "free" ? 1 : serverPlan === "prime" ? 5 : serverPlan === "apex" ? 60 : 1);
 
             // Update states if they differ from localStorage cache
             setUserPlan(serverPlan);
@@ -406,7 +409,7 @@ export default function App() {
           }
         })
         .catch((err) => {
-          console.warn("Firestore fetch on login failed:", err);
+          console.warn("Supabase fetch on login failed:", err);
         });
     }
   }, [currentUser]);
@@ -474,24 +477,26 @@ export default function App() {
       localStorage.setItem("bi-global-users", JSON.stringify(list));
     }
 
-    // Always push updates to Firestore if configured to ensure other browsers see it
-    if (db) {
+    // Always push updates to Supabase if configured to ensure other browsers see it
+    if (hasSupabaseConfig && uid !== "admin-uid" && uid !== "anonymous") {
       try {
-        setDoc(doc(db, "users", uid), {
-          userId: uid,
-          email,
-          name: userName,
-          role: parsedRole,
-          plan: userPlan,
-          analysesLeft,
-          projectSlots,
-          createdAt: userObj?.createdAt || new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }, { merge: true }).catch(err => {
-          console.warn("Firestore user sync failed (permissions or configurations issue):", err);
-        });
+        supabase
+          .from("users")
+          .upsert({
+            user_id: uid,
+            email,
+            name: userName,
+            role: parsedRole,
+            plan: userPlan,
+            analyses_left: analysesLeft,
+            project_slots: projectSlots,
+            updated_at: new Date().toISOString()
+          })
+          .catch(err => {
+            console.warn("Supabase user sync failed:", err);
+          });
       } catch (e) {
-        console.warn("Firestore sync trigger failed:", e);
+        console.warn("Supabase sync trigger failed:", e);
       }
     }
   }, [currentUser, userPlan, analysesLeft, projectSlots]);

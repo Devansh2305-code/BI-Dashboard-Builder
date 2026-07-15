@@ -1,6 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -20,14 +19,12 @@ export const hasFirebaseConfig = !!(
 let app;
 let authInstance: any = null;
 let googleProviderInstance: any = null;
-let firestoreInstance: any = null;
 
 if (hasFirebaseConfig) {
   try {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     authInstance = getAuth(app);
     googleProviderInstance = new GoogleAuthProvider();
-    firestoreInstance = getFirestore(app);
   } catch (error) {
     console.error("Firebase initialization failed:", error);
   }
@@ -35,4 +32,4 @@ if (hasFirebaseConfig) {
 
 export const auth = authInstance;
 export const googleProvider = googleProviderInstance;
-export const db = firestoreInstance;
+export const db = null; // Swapped out for Supabase database queries

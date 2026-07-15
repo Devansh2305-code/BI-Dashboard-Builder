@@ -25,16 +25,15 @@ import { Role } from "../types";
 import { 
   auth, 
   googleProvider, 
-  hasFirebaseConfig,
-  db
+  hasFirebaseConfig
 } from "../firebase";
-import { doc, getDoc } from "firebase/firestore";
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signInWithPopup, 
   updateProfile 
 } from "firebase/auth";
+import { supabase, hasSupabaseConfig } from "../supabase";
 
 interface LandingPageProps {
   onMockLogin: (mockUser: { uid: string; email: string; displayName: string }) => void;
@@ -95,17 +94,18 @@ export default function LandingPage({ onMockLogin }: LandingPageProps) {
       const checkPasscode = async () => {
         let activeAdminPassword = "admin123";
         
-        if (db) {
+        if (hasSupabaseConfig) {
           try {
-            const configSnap = await getDoc(doc(db, "system", "config"));
-            if (configSnap.exists()) {
-              const data = configSnap.data();
-              if (data.adminPassword) {
-                activeAdminPassword = data.adminPassword;
-              }
+            const { data, error } = await supabase
+              .from("system_config")
+              .select("admin_password")
+              .eq("id", 1)
+              .single();
+            if (data && !error && data.admin_password) {
+              activeAdminPassword = data.admin_password;
             }
           } catch (e) {
-            console.warn("Could not retrieve admin password from Firestore:", e);
+            console.warn("Could not retrieve admin password from Supabase:", e);
           }
         } else {
           activeAdminPassword = localStorage.getItem("bi-admin-password") || "admin123";
