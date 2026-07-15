@@ -109,7 +109,9 @@ export default function LandingPage({ onMockLogin }: LandingPageProps) {
       } catch (err: any) {
         console.error("Firebase Auth Error:", err);
         let friendlyMessage = err.message;
-        if (err.code === "auth/invalid-credential") {
+        if (err.code === "auth/unauthorized-domain") {
+          friendlyMessage = `Unauthorized Domain: Please add "${window.location.hostname}" to the "Authorized Domains" list in your Firebase Console (Authentication > Settings > Authorized Domains).`;
+        } else if (err.code === "auth/invalid-credential") {
           friendlyMessage = "Invalid email or password credentials.";
         } else if (err.code === "auth/email-already-in-use") {
           friendlyMessage = "This email address is already in use.";
@@ -160,7 +162,11 @@ export default function LandingPage({ onMockLogin }: LandingPageProps) {
         }, 1000);
       } catch (err: any) {
         console.error("Google Auth Error:", err);
-        setError(err.message || "Failed to sign in with Google.");
+        let friendlyMessage = err.message;
+        if (err.code === "auth/unauthorized-domain") {
+          friendlyMessage = `Unauthorized Domain: Please add "${window.location.hostname}" to the "Authorized Domains" list in your Firebase Console (Authentication > Settings > Authorized Domains).`;
+        }
+        setError(friendlyMessage || "Failed to sign in with Google.");
       } finally {
         setIsLoading(false);
       }
@@ -197,7 +203,7 @@ export default function LandingPage({ onMockLogin }: LandingPageProps) {
             <div className="bg-gradient-to-br from-blue-600 to-blue-700 text-white p-2 rounded-lg shadow-lg">
               <PieChart className="w-5 h-5 stroke-[2.5]" />
             </div>
-            <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white to-slate-350 bg-clip-text text-transparent">
+            <span className="font-extrabold text-lg tracking-tight text-white">
               DataGlance
             </span>
           </div>
