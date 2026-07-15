@@ -30,6 +30,9 @@ import {
   Shield
 } from "lucide-react";
 
+// Admin key constant
+const ADMIN_KEY = "PratDev0223BI";
+
 const getDefaultWidgets = (role: Role, availableMeasures: Measure[]): Widget[] => {
   const getMId = (prefix: string) => {
     return availableMeasures.find(m => m.id.includes(prefix))?.id || availableMeasures[0]?.id || "";
@@ -320,8 +323,9 @@ export default function App() {
     return localStorage.getItem("theme-mode") === "dark";
   });
   const [isAdminMode, setIsAdminMode] = useState<boolean>(() => {
-    return localStorage.getItem("admin-key") !== null;
+    return localStorage.getItem("admin-authenticated") === "true";
   });
+  const [adminError, setAdminError] = useState<string | null>(null);
 
   const [aiAnalysisResult, setAiAnalysisResult] = useState<AIAnalysisResult | null>(null);
 
@@ -535,15 +539,22 @@ export default function App() {
 
   const handleToggleAdminMode = () => {
     if (isAdminMode) {
-      localStorage.removeItem("admin-key");
+      localStorage.removeItem("admin-authenticated");
       setIsAdminMode(false);
+      setAdminError(null);
       setView("report");
     } else {
       const key = prompt("Enter admin key:");
       if (key) {
-        localStorage.setItem("admin-key", key);
-        setIsAdminMode(true);
-        setView("admin");
+        if (key === ADMIN_KEY) {
+          localStorage.setItem("admin-authenticated", "true");
+          setIsAdminMode(true);
+          setAdminError(null);
+          setView("admin");
+        } else {
+          setAdminError("Invalid admin key. Access denied.");
+          setTimeout(() => setAdminError(null), 3000);
+        }
       }
     }
   };
@@ -613,6 +624,12 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2.5">
+            {adminError && (
+              <div className="hidden sm:block px-3 py-1.5 bg-red-100 dark:bg-red-900/30 rounded-lg text-xs font-semibold text-red-700 dark:text-red-300">
+                {adminError}
+              </div>
+            )}
+
             {isAdminMode && (
               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg text-xs font-semibold text-purple-700 dark:text-purple-300">
                 <Shield className="w-3.5 h-3.5" />
@@ -668,7 +685,7 @@ export default function App() {
 
         {/* Dynamic Content Views */}
         <main className="flex-1 overflow-hidden print:overflow-visible">
-          {isAdminMode ? (
+          {isAdminMode && currentView === "admin" ? (
             <AdminPanel />
           ) : isImportOpen ? (
             <div className="h-full overflow-y-auto p-6 bg-slate-50">
@@ -737,10 +754,6 @@ export default function App() {
                     setResult={setAiAnalysisResult}
                   />
                 </div>
-              )}
-
-              {currentView === "admin" && isAdminMode && (
-                <AdminPanel />
               )}
             </>
           )}

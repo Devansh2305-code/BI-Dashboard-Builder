@@ -3,6 +3,9 @@ import { UserPlan, AdminAnalytics, SystemConfiguration, AuditLog, PlanType, Plan
 
 const adminRouter = express.Router();
 
+// Admin key constant
+const ADMIN_KEY = "PratDev0223BI";
+
 // In-memory storage for demo (replace with database)
 let users: UserPlan[] = [];
 let auditLogs: AuditLog[] = [];
@@ -41,11 +44,11 @@ const planConfigs: PlanConfiguration = {
   },
 };
 
-// Middleware to verify admin access (placeholder - implement real auth)
+// Middleware to verify admin access
 const verifyAdmin = (req: Request, res: Response, next: Function) => {
   const adminKey = req.headers["x-admin-key"];
-  if (adminKey !== process.env.ADMIN_KEY) {
-    return res.status(403).json({ error: "Unauthorized: Admin access required" });
+  if (adminKey !== ADMIN_KEY) {
+    return res.status(403).json({ error: "Unauthorized: Admin access required. Invalid or missing admin key." });
   }
   next();
 };
