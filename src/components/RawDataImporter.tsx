@@ -9,7 +9,7 @@ import {
   ClipboardPaste,
   RefreshCw
 } from "lucide-react";
-import { parseCSV, parseExcel, getTemplateForRole } from "../utils";
+import { parseCSV, parseExcel } from "../utils";
 import { Role, ColumnMetadata } from "../types";
 
 interface RawDataImporterProps {
@@ -23,22 +23,12 @@ export default function RawDataImporter({
   onImport,
   currentDataLength 
 }: RawDataImporterProps) {
-  const [activeTab, setActiveTab] = useState<"preload" | "paste" | "upload">("preload");
+  const [activeTab, setActiveTab] = useState<"paste" | "upload">("upload");
   const [csvText, setCsvText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load selected role's standard dataset
-  const handleLoadRoleTemplate = () => {
-    setError(null);
-    try {
-      const template = getTemplateForRole(activeRole);
-      onImport(template.data, template.columns);
-    } catch (e: any) {
-      setError(`Failed to load template: ${e.message}`);
-    }
-  };
 
   // Parse pasted raw CSV content
   const handleParsePastedCSV = () => {
@@ -154,16 +144,16 @@ export default function RawDataImporter({
       {/* Tabs Selector */}
       <div className="flex border-b border-slate-200 mb-6">
         <button
-          id="tab-import-preload"
-          onClick={() => { setActiveTab("preload"); setError(null); }}
+          id="tab-import-upload"
+          onClick={() => { setActiveTab("upload"); setError(null); }}
           className={`px-5 py-3 text-sm font-semibold border-b-2 transition-all duration-200 flex items-center space-x-2 ${
-            activeTab === "preload"
+            activeTab === "upload"
               ? "border-blue-600 text-blue-700 font-semibold"
               : "border-transparent text-slate-400 hover:text-slate-600"
           }`}
         >
-          <Database className="w-4 h-4" />
-          <span>Preloaded Templates ({activeRole})</span>
+          <Upload className="w-4 h-4" />
+          <span>Upload CSV File</span>
         </button>
 
         <button
@@ -178,19 +168,6 @@ export default function RawDataImporter({
           <ClipboardPaste className="w-4 h-4" />
           <span>Paste Raw CSV</span>
         </button>
-
-        <button
-          id="tab-import-upload"
-          onClick={() => { setActiveTab("upload"); setError(null); }}
-          className={`px-5 py-3 text-sm font-semibold border-b-2 transition-all duration-200 flex items-center space-x-2 ${
-            activeTab === "upload"
-              ? "border-blue-600 text-blue-700 font-semibold"
-              : "border-transparent text-slate-400 hover:text-slate-600"
-          }`}
-        >
-          <Upload className="w-4 h-4" />
-          <span>Upload CSV File</span>
-        </button>
       </div>
 
       {/* Error notification */}
@@ -202,35 +179,6 @@ export default function RawDataImporter({
       )}
 
       {/* Tab Panels */}
-      {activeTab === "preload" && (
-        <div id="panel-preload" className="space-y-4">
-          <div className="bg-slate-50 border border-slate-200 p-5 rounded-xl">
-            <div className="flex items-start space-x-4">
-              <div className="bg-blue-50 text-blue-700 p-3 rounded-lg shrink-0 border border-blue-100">
-                <FileSpreadsheet className="w-6 h-6 stroke-[2]" />
-              </div>
-              <div className="space-y-1 flex-1">
-                <h3 className="font-bold text-slate-800 text-sm">{activeRole} Analytical Dataset</h3>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  We've constructed a realistic, high-fidelity dataset structured specifically for the needs of a <strong className="text-slate-700">{activeRole}</strong>, pre-populated with calculated correlations, dates, and categories.
-                </p>
-                <div className="pt-2 text-[11px] text-slate-400 font-mono">
-                  Contains indicators such as: {activeRole === "CMO" ? "Spend, Impressions, Conversions, CTR, ROAS" : activeRole === "Business Analyst" ? "Product, Gross Sales, Region, Unit margins, Returns" : "Spend, Operating margins, Operating Variance, Headcount productivity"}
-                </div>
-              </div>
-            </div>
-          </div>
-          <button
-            id="btn-load-template"
-            onClick={handleLoadRoleTemplate}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg transition duration-150 flex items-center justify-center space-x-2 shadow-sm"
-          >
-            <span>Instantiate {activeRole} Data Model</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
       {activeTab === "paste" && (
         <div id="panel-paste" className="space-y-4">
           <p className="text-xs text-slate-500 leading-relaxed mb-1">

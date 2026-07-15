@@ -734,25 +734,7 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2.5">
-            {isAdminMode && (
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg text-xs font-semibold text-purple-700 dark:text-purple-300">
-                <Shield className="w-3.5 h-3.5" />
-                Admin Mode
-              </div>
-            )}
 
-            <button
-              id="btn-toggle-admin"
-              onClick={handleToggleAdminMode}
-              className={`p-2 rounded-lg border transition ${
-                isAdminMode
-                  ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-700"
-                  : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
-              }`}
-              title={isAdminMode ? "Exit Admin Mode" : "Enter Admin Mode"}
-            >
-              <Shield className="w-4 h-4" />
-            </button>
 
             <button
               id="btn-toggle-dark-mode"
