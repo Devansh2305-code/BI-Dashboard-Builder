@@ -65,7 +65,7 @@ export default function BillingView({
       accent: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-350",
       features: [
         "1 Saved Project workspace",
-        "5 Free AI Narrative Audits",
+        "5 Free Dataset Analyses",
         "Standard layout canvases",
         "Excel/CSV manual imports"
       ],

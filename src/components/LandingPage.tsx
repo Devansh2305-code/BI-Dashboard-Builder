@@ -88,7 +88,8 @@ export default function LandingPage({ onMockLogin }: LandingPageProps) {
 
     // Secure Admin Intercept Check
     if (email === "admin@dataglance.com" || authTab === "admin") {
-      if (email !== "admin@dataglance.com" || password !== "admin123") {
+      const activeAdminPassword = localStorage.getItem("bi-admin-password") || "admin123";
+      if (email !== "admin@dataglance.com" || password !== activeAdminPassword) {
         setError("Invalid administrative credentials.");
         return;
       }
@@ -711,7 +712,7 @@ export default function LandingPage({ onMockLogin }: LandingPageProps) {
             {/* Footnote about test account */}
             {authTab === "admin" ? (
               <div className="mt-4 p-3 bg-red-950/20 border border-red-900/30 text-[10px] text-red-400 rounded-lg leading-relaxed text-left">
-                <strong>Console Credentials:</strong> Sign in using <code>admin@dataglance.com</code> and passcode <code>admin123</code> to access systems settings.
+                <strong>Console Credentials:</strong> Sign in using <code>admin@dataglance.com</code> and passcode <code>admin123</code> (or your custom password) to access systems settings.
               </div>
             ) : (
               !hasFirebaseConfig && (

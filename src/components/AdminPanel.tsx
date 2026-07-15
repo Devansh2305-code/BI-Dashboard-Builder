@@ -35,6 +35,7 @@ const AdminPanel: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<UserPlan | null>(null);
   const [newUserForm, setNewUserForm] = useState({ userId: "", email: "", plan: "free" as PlanType });
   const [editPlan, setEditPlan] = useState<PlanType>("free");
+  const [newAdminPassword, setNewAdminPassword] = useState("");
 
   const ADMIN_KEY = localStorage.getItem("admin-key") || "";
 
@@ -296,6 +297,16 @@ const AdminPanel: React.FC = () => {
     if (!systemConfig) return;
     try {
       localStorage.setItem("bi-system-config", JSON.stringify(systemConfig));
+      
+      if (newAdminPassword.trim()) {
+        if (newAdminPassword.trim().length < 4) {
+          throw new Error("Administrative passcode must be at least 4 characters.");
+        }
+        localStorage.setItem("bi-admin-password", newAdminPassword.trim());
+        addAuditLog("ADMIN_PASSWORD_CHANGED", "admin", { message: "Administrative passcode successfully updated." });
+        setNewAdminPassword("");
+      }
+
       addAuditLog("CONFIG_UPDATED", "system", systemConfig);
       setSuccess("Configuration updated successfully");
     } catch (err: any) {
@@ -594,6 +605,32 @@ const AdminPanel: React.FC = () => {
                   onChange={(e) => setSystemConfig({ ...systemConfig, defaultTimeout: parseInt(e.target.value) })}
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                 />
+              </div>
+
+              {/* Admin Credentials */}
+              <div className="pt-5 border-t border-slate-200 dark:border-slate-800">
+                <p className="font-semibold text-slate-900 dark:text-white mb-2">Admin Terminal Credentials</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Administrative Email</label>
+                    <input
+                      type="email"
+                      value="admin@dataglance.com"
+                      disabled
+                      className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 cursor-not-allowed select-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Change Admin Passcode</label>
+                    <input
+                      type="password"
+                      placeholder="Enter new admin passcode (minimum 4 characters)"
+                      value={newAdminPassword}
+                      onChange={(e) => setNewAdminPassword(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-350 dark:border-slate-650 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Save Button */}
