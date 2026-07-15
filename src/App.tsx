@@ -517,6 +517,36 @@ export default function App() {
     localStorage.setItem(`bi-slots-${uid}`, String(newSlotsCount));
   };
 
+  const syncUserPlan = async () => {
+    if (!currentUser || currentUser.uid === "anonymous" || currentUser.uid === "admin-uid" || !hasSupabaseConfig) return;
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("user_id", currentUser.uid)
+        .single();
+      if (data && !error) {
+        const serverPlan = data.plan as PlanType || "free";
+        const serverCredits = data.analyses_left !== undefined ? Number(data.analyses_left) : 5;
+        const serverSlots = data.project_slots !== undefined ? Number(data.project_slots) : (serverPlan === "free" ? 1 : serverPlan === "prime" ? 5 : serverPlan === "apex" ? 60 : 1);
+
+        setUserPlan(serverPlan);
+        setAnalysesLeft(serverCredits);
+        setProjectSlots(serverSlots);
+
+        localStorage.setItem(`bi-plan-${currentUser.uid}`, serverPlan);
+        localStorage.setItem(`bi-credits-${currentUser.uid}`, String(serverCredits));
+        localStorage.setItem(`bi-slots-${currentUser.uid}`, String(serverSlots));
+        alert("Subscription and limits refreshed successfully!");
+      } else {
+        alert("Could not fetch latest plan details. Please check connection.");
+      }
+    } catch (e) {
+      console.warn("Failed to sync plan:", e);
+      alert("An error occurred during synchronization.");
+    }
+  };
+
   const handleSaveCurrentProject = (name: string) => {
     if (savedProjects.length >= projectSlots) {
       alert(`You have reached the limit of ${projectSlots} saved projects for your plan. Please upgrade your plan in Billing.`);
@@ -1123,6 +1153,8 @@ export default function App() {
                     projectSlots={projectSlots}
                     savedProjectsCount={savedProjects.length}
                     onUpgradePlan={handleUpgradePlan}
+                    currentUser={currentUser}
+                    onRefreshPlan={syncUserPlan}
                   />
                 </div>
               )}

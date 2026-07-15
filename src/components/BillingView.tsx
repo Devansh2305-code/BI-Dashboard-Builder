@@ -11,9 +11,11 @@ import {
   TrendingUp,
   Award,
   Zap,
-  Lock
+  Lock,
+  RefreshCw
 } from "lucide-react";
 import { PlanType } from "../types";
+import { supabase, hasSupabaseConfig } from "../supabase";
 
 interface BillingViewProps {
   currentPlan: PlanType;
@@ -21,6 +23,8 @@ interface BillingViewProps {
   projectSlots: number;
   savedProjectsCount: number;
   onUpgradePlan: (plan: PlanType, newSlotsCount: number) => void;
+  currentUser: any;
+  onRefreshPlan?: () => void;
 }
 
 export default function BillingView({
@@ -28,7 +32,9 @@ export default function BillingView({
   analysesLeft,
   projectSlots,
   savedProjectsCount,
-  onUpgradePlan
+  onUpgradePlan,
+  currentUser,
+  onRefreshPlan
 }: BillingViewProps) {
   const [checkoutModal, setCheckoutModal] = useState<{
     isOpen: boolean;
@@ -49,9 +55,36 @@ export default function BillingView({
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvv, setCardCvv] = useState("");
   const [upiId, setUpiId] = useState("");
+  const [transactionRef, setTransactionRef] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+
+  const fetchTransactions = async () => {
+    if (!hasSupabaseConfig || !currentUser || currentUser.uid === "anonymous" || currentUser.uid === "admin-uid") return;
+    setLoadingTransactions(true);
+    try {
+      const { data, error } = await supabase
+        .from("payments")
+        .select("*")
+        .eq("user_id", currentUser.uid)
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        setTransactions(data);
+      }
+    } catch (e) {
+      console.warn("Failed to fetch payments:", e);
+    } finally {
+      setLoadingTransactions(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchTransactions();
+  }, [currentUser]);
 
   const plans = [
     {
@@ -151,7 +184,7 @@ export default function BillingView({
     setUpiId("");
   };
 
-  const handlePaySubmit = (e: React.FormEvent) => {
+  const handlePaySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCheckoutError("");
 
@@ -160,29 +193,69 @@ export default function BillingView({
       return;
     }
 
-    setIsProcessing(true);
-    
-    // Simulate secure bank transaction delay
-    setTimeout(() => {
-      setIsProcessing(false);
-      
-      let newSlots = projectSlots;
-      if (checkoutModal.isSlotPurchase) {
-        newSlots = projectSlots + 1;
-      } else if (checkoutModal.plan === "prime") {
-        newSlots = Math.max(projectSlots, 5);
-      } else if (checkoutModal.plan === "apex") {
-        newSlots = Math.max(projectSlots, 60);
+    if (hasSupabaseConfig && currentUser && currentUser.uid !== "anonymous" && currentUser.uid !== "admin-uid") {
+      if (!transactionRef || transactionRef.trim().length < 6) {
+        setCheckoutError("Please enter a valid UPI transaction reference code (minimum 6 characters).");
+        return;
       }
 
-      onUpgradePlan(checkoutModal.plan, newSlots);
-      
-      setSuccessMessage(`Payment of Rs. ${checkoutModal.cost} received! Plan status successfully updated.`);
-      
+      setIsProcessing(true);
+      try {
+        const { error } = await supabase
+          .from("payments")
+          .insert({
+            user_id: currentUser.uid,
+            email: currentUser.email || "no-email@dataglance.com",
+            plan: checkoutModal.plan,
+            amount: checkoutModal.cost,
+            upi_id: upiId,
+            transaction_ref: transactionRef.trim(),
+            status: "pending"
+          });
+
+        if (error) {
+          if (error.message && error.message.includes("unique")) {
+            throw new Error("This Transaction Reference number has already been submitted for verification.");
+          }
+          throw error;
+        }
+
+        setSuccessMessage(`Upgrade request submitted successfully! Admin will verify Ref ID: ${transactionRef.trim()} and update your plan details.`);
+        setTransactionRef("");
+        fetchTransactions();
+
+        setTimeout(() => {
+          handleCloseCheckout();
+        }, 3000);
+      } catch (err: any) {
+        console.error("Supabase insert error:", err);
+        setCheckoutError(err.message || "Failed to submit verification request. Please try again.");
+      } finally {
+        setIsProcessing(false);
+      }
+    } else {
+      // Mock flow
+      setIsProcessing(true);
       setTimeout(() => {
-        handleCloseCheckout();
-      }, 1500);
-    }, 2000);
+        setIsProcessing(false);
+        
+        let newSlots = projectSlots;
+        if (checkoutModal.isSlotPurchase) {
+          newSlots = projectSlots + 1;
+        } else if (checkoutModal.plan === "prime") {
+          newSlots = Math.max(projectSlots, 5);
+        } else if (checkoutModal.plan === "apex") {
+          newSlots = Math.max(projectSlots, 60);
+        }
+
+        onUpgradePlan(checkoutModal.plan, newSlots);
+        setSuccessMessage(`[MOCK] Payment of Rs. ${checkoutModal.cost} received! Plan status successfully updated.`);
+        
+        setTimeout(() => {
+          handleCloseCheckout();
+        }, 1500);
+      }, 2000);
+    }
   };
 
   return (
@@ -203,6 +276,16 @@ export default function BillingView({
             }`}>
               {currentPlan} plan
             </span>
+            {hasSupabaseConfig && currentUser && currentUser.uid !== "anonymous" && onRefreshPlan && (
+              <button
+                onClick={onRefreshPlan}
+                className="p-1 text-slate-550 hover:text-slate-700 dark:hover:text-white rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer text-[10px] flex items-center gap-1 border border-slate-200 dark:border-slate-800 font-bold"
+                title="Sync and refresh active subscription status"
+              >
+                <RefreshCw className="w-2.5 h-2.5" />
+                Refresh Plan
+              </button>
+            )}
           </div>
           <p className="text-xs text-slate-400 mt-1">Check analyses credits, purchased capacity slots, and upgrade parameters.</p>
         </div>
@@ -362,6 +445,15 @@ export default function BillingView({
 
             {/* Checkout Form */}
             <form onSubmit={handlePaySubmit} className="space-y-4">
+              {hasSupabaseConfig && currentUser && currentUser.uid !== "anonymous" && (
+                <div className="text-[10px] text-slate-500 bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-100 dark:border-slate-850 leading-relaxed text-left space-y-1">
+                  <p className="font-bold text-slate-700 dark:text-slate-350">How to pay:</p>
+                  <p>1. Open your UPI App (GPay, PhonePe, Paytm, etc.).</p>
+                  <p>2. Send the exact amount to: <code className="font-mono text-blue-600 dark:text-blue-400 font-bold">dataglance@okaxis</code></p>
+                  <p>3. Copy the UPI Transaction Ref ID / UTN and enter it below.</p>
+                </div>
+              )}
+
               <div>
                 <label className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">UPI Address ID</label>
                 <input
@@ -373,6 +465,20 @@ export default function BillingView({
                   disabled={isProcessing}
                 />
               </div>
+
+              {hasSupabaseConfig && currentUser && currentUser.uid !== "anonymous" && (
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Transaction Ref / UTN Number</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 12-digit reference number"
+                    value={transactionRef}
+                    onChange={(e) => setTransactionRef(e.target.value)}
+                    className="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 focus:border-blue-600 rounded-lg text-xs outline-none transition"
+                    disabled={isProcessing}
+                  />
+                </div>
+              )}
 
               {/* Submit Payment button */}
               <button
@@ -388,12 +494,73 @@ export default function BillingView({
                 ) : (
                   <>
                     <Lock className="w-3.5 h-3.5" />
-                    <span>Pay Rs. {checkoutModal.cost}</span>
+                    <span>{hasSupabaseConfig && currentUser && currentUser.uid !== "anonymous" ? "Submit Reference Code" : `Pay Rs. ${checkoutModal.cost}`}</span>
                   </>
                 )}
               </button>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Transaction History */}
+      {hasSupabaseConfig && currentUser && currentUser.uid !== "anonymous" && currentUser.uid !== "admin-uid" && (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div>
+              <h3 className="text-base font-bold text-slate-800 dark:text-white">Upgrade Request History</h3>
+              <p className="text-[11px] text-slate-405 mt-0.5">Track the approval status of your manual payment reference codes.</p>
+            </div>
+            <button 
+              onClick={fetchTransactions}
+              className="px-3 py-1 bg-slate-150 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-350 hover:bg-slate-200 dark:hover:bg-slate-750 rounded-lg transition flex items-center gap-1 cursor-pointer"
+              disabled={loadingTransactions}
+            >
+              <RefreshCw className={`w-3 h-3 ${loadingTransactions ? 'animate-spin' : ''}`} />
+              Sync Status
+            </button>
+          </div>
+
+          {loadingTransactions && transactions.length === 0 ? (
+            <div className="py-6 text-center text-xs text-slate-400">Loading payment history...</div>
+          ) : transactions.length === 0 ? (
+            <div className="py-8 text-center text-xs text-slate-400">No payment requests found. Upgrade your plan above to get started!</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-bold">
+                    <th className="py-2.5">Date</th>
+                    <th className="py-2.5">Plan Requested</th>
+                    <th className="py-2.5">Amount</th>
+                    <th className="py-2.5">UPI ID</th>
+                    <th className="py-2.5">Transaction Ref</th>
+                    <th className="py-2.5 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
+                  {transactions.map((txn) => (
+                    <tr key={txn.id} className="text-slate-600 dark:text-slate-300">
+                      <td className="py-3">{new Date(txn.created_at).toLocaleDateString()}</td>
+                      <td className="py-3 font-semibold text-slate-800 dark:text-white capitalize">{txn.plan}</td>
+                      <td className="py-3 font-mono">Rs. {txn.amount}</td>
+                      <td className="py-3 text-slate-400 font-mono">{txn.upi_id}</td>
+                      <td className="py-3 font-mono text-slate-450 dark:text-slate-500">{txn.transaction_ref}</td>
+                      <td className="py-3 text-right">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${
+                          txn.status === "pending" ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
+                          txn.status === "approved" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
+                          "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                        }`}>
+                          {txn.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

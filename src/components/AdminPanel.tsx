@@ -16,13 +16,16 @@ import {
   Check,
   Clock,
   Activity,
+  CreditCard,
+  RefreshCw,
 } from "lucide-react";
 
-type AdminTab = "users" | "analytics" | "reporting" | "configuration";
+type AdminTab = "users" | "payments" | "analytics" | "reporting" | "configuration";
 
 const AdminPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AdminTab>("users");
   const [users, setUsers] = useState<UserPlan[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [systemConfig, setSystemConfig] = useState<SystemConfiguration | null>(null);
@@ -59,6 +62,89 @@ const AdminPanel: React.FC = () => {
       setAuditLogs(logs);
     } catch (e) {
       console.warn("Failed to write audit logs:", e);
+    }
+  };
+
+  const fetchPayments = async () => {
+    if (!hasSupabaseConfig) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("payments")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setPayments(data || []);
+      setError(null);
+    } catch (e: any) {
+      console.warn("Failed to fetch payments:", e);
+      setError(e.message || "Failed to load payment requests.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprovePayment = async (payment: any) => {
+    if (!confirm(`Are you sure you want to APPROVE payment Ref: ${payment.transaction_ref} for ${payment.email}? This will activate the ${payment.plan} plan.`)) return;
+    setLoading(true);
+    try {
+      // 1. Update payment status in database
+      const { error: pErr } = await supabase
+        .from("payments")
+        .update({ status: "approved" })
+        .eq("id", payment.id);
+      if (pErr) throw pErr;
+
+      // 2. Calculate slots/credits
+      const plan = payment.plan;
+      const slots = plan === "free" ? 1 : plan === "prime" ? 5 : plan === "apex" ? 60 : 1;
+      const credits = plan === "free" ? 5 : 999999;
+
+      // 3. Update user plan profile in users table
+      const { error: uErr } = await supabase
+        .from("users")
+        .update({
+          plan,
+          project_slots: slots,
+          analyses_left: credits,
+          updated_at: new Date().toISOString()
+        })
+        .eq("user_id", payment.user_id);
+      if (uErr) throw uErr;
+
+      // Update local storage settings if matching currently logged in admin user just in case
+      localStorage.setItem(`bi-plan-${payment.user_id}`, plan);
+      localStorage.setItem(`bi-credits-${payment.user_id}`, String(credits));
+      localStorage.setItem(`bi-slots-${payment.user_id}`, String(slots));
+
+      addAuditLog("PAYMENT_APPROVED", payment.user_id, { plan, ref: payment.transaction_ref });
+      setSuccess(`Payment approved! ${payment.email} upgraded to ${plan}.`);
+      fetchPayments();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Failed to approve payment.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRejectPayment = async (payment: any) => {
+    if (!confirm(`Are you sure you want to REJECT payment Ref: ${payment.transaction_ref} for ${payment.email}?`)) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("payments")
+        .update({ status: "rejected" })
+        .eq("id", payment.id);
+      if (error) throw error;
+
+      addAuditLog("PAYMENT_REJECTED", payment.user_id, { plan: payment.plan, ref: payment.transaction_ref });
+      setSuccess(`Payment reference rejected.`);
+      fetchPayments();
+    } catch (err: any) {
+      setError(err.message || "Failed to reject payment.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -457,6 +543,7 @@ const AdminPanel: React.FC = () => {
   // Load data on tab change
   useEffect(() => {
     if (activeTab === "users") fetchUsers();
+    else if (activeTab === "payments") fetchPayments();
     else if (activeTab === "analytics") fetchAnalytics();
     else if (activeTab === "reporting") fetchAuditLogs();
     else if (activeTab === "configuration") fetchSystemConfig();
@@ -519,6 +606,7 @@ const AdminPanel: React.FC = () => {
         <div className="px-6 flex gap-8">
           {[
             { id: "users", label: "Users", icon: Users },
+            { id: "payments", label: "Payment Requests", icon: CreditCard },
             { id: "analytics", label: "Analytics", icon: BarChart3 },
             { id: "reporting", label: "Reporting", icon: FileText },
             { id: "configuration", label: "Configuration", icon: Settings },
@@ -609,6 +697,90 @@ const AdminPanel: React.FC = () => {
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* PAYMENTS TAB */}
+        {activeTab === "payments" && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Manual Payment Requests</h2>
+              <button 
+                onClick={fetchPayments}
+                className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition cursor-pointer"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Reload requests
+              </button>
+            </div>
+
+            {!hasSupabaseConfig ? (
+              <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+                <CreditCard className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                <p className="text-slate-600 dark:text-slate-400">Supabase is not configured. Payments are processed in simulated Mock mode in Billing.</p>
+              </div>
+            ) : payments.length === 0 ? (
+              <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+                <CreditCard className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                <p className="text-slate-600 dark:text-slate-400">No payment requests found.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Date</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">User Email</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Requested Plan</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Amount</th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-300">Transaction Ref</th>
+                      <th className="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">Status</th>
+                      <th className="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-300">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payments.map((payment) => (
+                      <tr key={payment.id} className="border-b border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition">
+                        <td className="px-4 py-3 text-slate-900 dark:text-slate-100 text-xs">{new Date(payment.created_at).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-slate-900 dark:text-slate-100 font-semibold">{payment.email}</td>
+                        <td className="px-4 py-3 capitalize font-bold text-blue-600 dark:text-blue-400">{payment.plan}</td>
+                        <td className="px-4 py-3 font-mono">Rs. {payment.amount}</td>
+                        <td className="px-4 py-3 font-mono text-xs font-semibold select-all bg-slate-50 dark:bg-slate-950 p-1 border border-slate-100 dark:border-slate-850 rounded">{payment.transaction_ref}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${
+                            payment.status === "pending" ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
+                            payment.status === "approved" ? "bg-green-500/10 text-green-500 border-green-500/20" :
+                            "bg-red-500/10 text-red-500 border-red-500/20"
+                          }`}>
+                            {payment.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center flex justify-center gap-2">
+                          {payment.status === "pending" ? (
+                            <>
+                              <button
+                                onClick={() => handleApprovePayment(payment)}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1 px-3 rounded text-xs transition cursor-pointer"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => handleRejectPayment(payment)}
+                                className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-1 px-3 rounded text-xs transition cursor-pointer"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-xs text-slate-405">Processed</span>
+                          )}
                         </td>
                       </tr>
                     ))}
