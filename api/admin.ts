@@ -14,6 +14,9 @@ import {
   addAuditLog
 } from "./dbStore";
 
+const app = express();
+app.use(express.json());
+
 const adminRouter = express.Router();
 
 const planConfigs = {
@@ -461,5 +464,8 @@ adminRouter.get("/audit-logs", verifyAdmin, (req: Request, res: Response) => {
   }
 });
 
-export default adminRouter;
+app.use("/api/admin", adminRouter);
+app.use("/", adminRouter);
+
+export default app;
 
