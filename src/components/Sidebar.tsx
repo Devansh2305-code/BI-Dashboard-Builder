@@ -13,13 +13,14 @@ import {
   X,
   Shield,
   CreditCard,
-  Plus
+  Plus,
+  TrendingUp
 } from "lucide-react";
 import { Role, PlanType, SavedProject } from "../types";
 
 interface SidebarProps {
-  currentView: "report" | "data" | "measures" | "ai" | "admin" | "billing";
-  setView: (view: "report" | "data" | "measures" | "ai" | "admin" | "billing") => void;
+  currentView: "report" | "data" | "measures" | "ai" | "admin" | "billing" | "startup";
+  setView: (view: "report" | "data" | "measures" | "ai" | "admin" | "billing" | "startup") => void;
   activeRole: Role;
   setRole: (role: Role) => void;
   dataLoaded: boolean;
@@ -57,6 +58,7 @@ export default function Sidebar({
     { id: "data", label: "Data View", icon: Database, desc: "Explore raw records" },
     { id: "measures", label: "Measures & Modeling", icon: Calculator, desc: "Formulas & KPI rules" },
     { id: "ai", label: "AI Insights", icon: Sparkles, desc: "Gemini narratives" },
+    { id: "startup", label: "Startup Analyst", icon: TrendingUp, desc: "Runway & unit economics" },
     { id: "billing", label: "Billing & Plans", icon: CreditCard, desc: "Manage subscription limits" },
   ] as const;
 
@@ -67,7 +69,7 @@ export default function Sidebar({
     onClose?.();
   };
 
-  const handleViewChange = (view: "report" | "data" | "measures" | "ai" | "admin" | "billing") => {
+  const handleViewChange = (view: "report" | "data" | "measures" | "ai" | "admin" | "billing" | "startup") => {
     setView(view);
     onClose?.();
   };

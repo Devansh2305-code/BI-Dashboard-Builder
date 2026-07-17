@@ -14,6 +14,7 @@ import AdminPanel from "./components/AdminPanel";
 import LandingPage from "./components/LandingPage";
 import RoleOnboarding from "./components/RoleOnboarding";
 import BillingView from "./components/BillingView";
+import StartupView from "./components/StartupView";
 import { Role, ColumnMetadata, Measure, Widget, AIAnalysisResult, PlanType, SavedProject } from "./types";
 import { getTemplateForRole } from "./utils";
 import { downloadHTMLReport } from "./reportGenerator";
@@ -331,7 +332,7 @@ export default function App() {
     return [];
   });
 
-  const [currentView, setView] = useState<"report" | "data" | "measures" | "ai" | "admin" | "billing">(() => {
+  const [currentView, setView] = useState<"report" | "data" | "measures" | "ai" | "admin" | "billing" | "startup">(() => {
     const saved = localStorage.getItem("bi-current-view");
     return (saved as any) || "report";
   });
@@ -824,12 +825,27 @@ export default function App() {
     }
 
     setWidgets(freshWidgets);
-    setView("report");
-    if (cleanSummary) {
-      setAiCleanMessage(cleanSummary);
+    
+    // Auto-detect if this is a SaaS/Startup dataset
+    const saasKeywords = ["mrr", "cac", "churn", "ltv", "runway", "burn rate", "cancellation", "subscription", "recurring", "active customers"];
+    const hasSaasColumns = importedColumns.some(col => 
+      saasKeywords.some(k => col.name.toLowerCase().includes(k))
+    );
+    
+    if (hasSaasColumns) {
+      setView("startup");
+      setAiCleanMessage("🚀 SaaS/Startup metrics detected! Redirected to the Startup Analyst workspace.");
       setTimeout(() => {
         setAiCleanMessage(null);
-      }, 7000);
+      }, 8000);
+    } else {
+      setView("report");
+      if (cleanSummary) {
+        setAiCleanMessage(cleanSummary);
+        setTimeout(() => {
+          setAiCleanMessage(null);
+        }, 7000);
+      }
     }
   };
 
@@ -1187,6 +1203,16 @@ export default function App() {
                     analysesLeft={analysesLeft}
                     onDecrementAnalyses={handleDecrementAnalyses}
                     setView={setView}
+                  />
+                </div>
+              )}
+
+              {currentView === "startup" && (
+                <div id="startup-view-scroll" className="h-full overflow-y-auto">
+                  <StartupView 
+                    dataset={dataset}
+                    columns={columns}
+                    onNavigateToBilling={() => setView("billing")}
                   />
                 </div>
               )}
