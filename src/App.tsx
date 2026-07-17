@@ -961,7 +961,7 @@ export default function App() {
   }
 
   if (!currentUser) {
-    return <LandingPage onMockLogin={handleMockLogin} />;
+    return <LandingPage onMockLogin={handleMockLogin} isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />;
   }
 
   if (!userRole) {
