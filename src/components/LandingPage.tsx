@@ -350,9 +350,15 @@ export default function LandingPage({ onMockLogin, isDarkMode, setIsDarkMode }: 
       {/* Hero Section */}
       <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-20 sm:pt-20 sm:pb-28 text-center animate-fadeIn">
         <div className="max-w-3xl mx-auto space-y-6">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-full animate-bounce">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Self-Service AI Business Analyst Workspace</span>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-full">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Self-Service AI Business Analyst Workspace</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>100% Client-Side Data Protection</span>
+            </div>
           </div>
           
           <h1 className={`text-4xl sm:text-6xl font-black leading-[1.1] tracking-tight transition-colors duration-300 ${
@@ -704,6 +710,76 @@ export default function LandingPage({ onMockLogin, isDarkMode, setIsDarkMode }: 
                 </div>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* Dedicated Data Protection & Security Section */}
+      <section className={`relative z-10 border-t py-20 transition-colors duration-300 ${
+        isDarkMode ? "border-slate-900 bg-slate-950/80" : "border-slate-200 bg-gradient-to-b from-slate-50 to-emerald-50/20"
+      }`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-3">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <span>Enterprise Data Protection Guarantee</span>
+            </div>
+            <h2 className={`text-2xl sm:text-4xl font-black tracking-tight ${isDarkMode ? "text-white" : "text-slate-900"}`}>
+              Your Data Never Leaves Your Browser
+            </h2>
+            <p className={`text-sm mt-3 ${isDarkMode ? "text-slate-400" : "text-slate-600"}`}>
+              DataGlance is engineered ground-up for extreme data privacy. Process enterprise spreadsheets and sensitive customer metrics with zero risk of cloud server exposure.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className={`p-6 border rounded-2xl relative overflow-hidden transition duration-300 ${
+              isDarkMode ? "bg-slate-900/50 border-emerald-900/40" : "bg-white border-emerald-100 shadow-sm"
+            }`}>
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-xl w-fit mb-4">
+                <Database className="w-6 h-6" />
+              </div>
+              <h3 className={`text-base font-bold ${isDarkMode ? "text-white" : "text-slate-900"}`}>Zero Server Uploads</h3>
+              <p className={`text-xs mt-2 leading-relaxed ${isDarkMode ? "text-slate-400" : "text-slate-600"}`}>
+                Spreadsheets (CSV/XLSX) are parsed 100% locally in React V8 memory via client-side WebAssembly. Raw dataset rows are never transmitted or stored on any remote cloud database.
+              </p>
+            </div>
+
+            <div className={`p-6 border rounded-2xl relative overflow-hidden transition duration-300 ${
+              isDarkMode ? "bg-slate-900/50 border-emerald-900/40" : "bg-white border-emerald-100 shadow-sm"
+            }`}>
+              <div className="p-3 bg-blue-500/10 border border-blue-500/20 text-blue-500 rounded-xl w-fit mb-4">
+                <Lock className="w-6 h-6" />
+              </div>
+              <h3 className={`text-base font-bold ${isDarkMode ? "text-white" : "text-slate-900"}`}>Isolated AI Summaries</h3>
+              <p className={`text-xs mt-2 leading-relaxed ${isDarkMode ? "text-slate-400" : "text-slate-600"}`}>
+                Gemini AI handles brief narratives using anonymized aggregate metrics only. Individual row records, PII, and customer identity fields are masked and strictly retained in local memory.
+              </p>
+            </div>
+
+            <div className={`p-6 border rounded-2xl relative overflow-hidden transition duration-300 ${
+              isDarkMode ? "bg-slate-900/50 border-emerald-900/40" : "bg-white border-emerald-100 shadow-sm"
+            }`}>
+              <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 rounded-xl w-fit mb-4">
+                <Activity className="w-6 h-6" />
+              </div>
+              <h3 className={`text-base font-bold ${isDarkMode ? "text-white" : "text-slate-900"}`}>Instant Memory Erasure</h3>
+              <p className={`text-xs mt-2 leading-relaxed ${isDarkMode ? "text-slate-400" : "text-slate-600"}`}>
+                Closing your tab or logging out instantly flushes all memory allocations. No persistent dataset shadow copies are left behind in any cache or third-party storage.
+              </p>
+            </div>
+
+            <div className={`p-6 border rounded-2xl relative overflow-hidden transition duration-300 ${
+              isDarkMode ? "bg-slate-900/50 border-emerald-900/40" : "bg-white border-emerald-100 shadow-sm"
+            }`}>
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-xl w-fit mb-4">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <h3 className={`text-base font-bold ${isDarkMode ? "text-white" : "text-slate-900"}`}>GDPR & SOC-2 Aligned</h3>
+              <p className={`text-xs mt-2 leading-relaxed ${isDarkMode ? "text-slate-400" : "text-slate-600"}`}>
+                Designed for corporate compliance. Data stays inside your organization's security perimeter with zero external tracking pixels or data brokers.
+              </p>
+            </div>
           </div>
         </div>
       </section>

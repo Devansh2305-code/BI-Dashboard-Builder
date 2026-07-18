@@ -16,7 +16,15 @@ import RoleOnboarding from "./components/RoleOnboarding";
 import BillingView from "./components/BillingView";
 import StartupView from "./components/StartupView";
 import { Role, ColumnMetadata, Measure, Widget, AIAnalysisResult, PlanType, SavedProject } from "./types";
-import { getTemplateForRole } from "./utils";
+import { 
+  getTemplateForRole, 
+  generateCMOData, CMO_COLUMNS,
+  generateAnalystData, ANALYST_COLUMNS,
+  generateCFOData, CFO_COLUMNS,
+  generateSalesData, SALES_COLUMNS,
+  generateHRData, HR_COLUMNS,
+  generateSaaSData, SAAS_COLUMNS
+} from "./utils";
 import { downloadHTMLReport } from "./reportGenerator";
 import { onAuthStateChanged, signOut, updateProfile } from "firebase/auth";
 import { auth, hasFirebaseConfig } from "./firebase";
@@ -41,7 +49,15 @@ import {
   X,
   Sparkles,
   User,
-  Phone
+  Phone,
+  Share2,
+  Link,
+  Check,
+  Copy,
+  Maximize2,
+  Minimize2,
+  ShieldCheck,
+  CheckCircle2
 } from "lucide-react";
 
 const getDefaultWidgets = (role: Role, availableMeasures: Measure[]): Widget[] => {
@@ -356,6 +372,96 @@ export default function App() {
   const [analysesLeft, setAnalysesLeft] = useState<number>(5);
   const [projectSlots, setProjectSlots] = useState<number>(1);
   const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
+
+  // Share Modal & Presentation States
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
+  const [shareCopied, setShareCopied] = useState(false);
+  const [isFullscreenMode, setIsFullscreenMode] = useState(false);
+  const [isSampleDropdownOpen, setIsSampleDropdownOpen] = useState(false);
+
+  const handleOpenShareModal = () => {
+    try {
+      const sharePayload = {
+        activeRole,
+        dataset: dataset.slice(0, 250), // Send up to 250 rows for smooth URL payload
+        columns,
+        measures,
+        widgets,
+        view: currentView
+      };
+      const jsonStr = JSON.stringify(sharePayload);
+      const b64Str = btoa(unescape(encodeURIComponent(jsonStr)));
+      const url = `${window.location.origin}${window.location.pathname}#share=${b64Str}`;
+      setShareUrl(url);
+      setShareCopied(false);
+      setIsShareModalOpen(true);
+    } catch (err) {
+      console.error("Failed to generate share link:", err);
+      alert("Could not generate share link for current dataset.");
+    }
+  };
+
+  const handleCopyShareLink = () => {
+    if (shareUrl) {
+      navigator.clipboard.writeText(shareUrl);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 3000);
+    }
+  };
+
+  const handleLoadSamplePreset = (presetType: "cmo" | "cfo" | "sales" | "hr" | "analyst" | "saas") => {
+    let sampleCols: ColumnMetadata[] = [];
+    let sampleData: any[] = [];
+    let targetRole: Role = "CMO";
+
+    if (presetType === "cmo") {
+      sampleCols = CMO_COLUMNS;
+      sampleData = generateCMOData();
+      targetRole = "CMO";
+    } else if (presetType === "cfo") {
+      sampleCols = CFO_COLUMNS;
+      sampleData = generateCFOData();
+      targetRole = "CFO";
+    } else if (presetType === "sales") {
+      sampleCols = SALES_COLUMNS;
+      sampleData = generateSalesData();
+      targetRole = "Sales Director";
+    } else if (presetType === "hr") {
+      sampleCols = HR_COLUMNS;
+      sampleData = generateHRData();
+      targetRole = "HR Specialist";
+    } else if (presetType === "analyst") {
+      sampleCols = ANALYST_COLUMNS;
+      sampleData = generateAnalystData();
+      targetRole = "Business Analyst";
+    } else if (presetType === "saas") {
+      sampleCols = SAAS_COLUMNS;
+      sampleData = generateSaaSData();
+      targetRole = "Business Analyst";
+    }
+
+    const { measures: templateMeasures, widgets: templateWidgets } = getTemplateForRole(targetRole);
+
+    setActiveRole(targetRole);
+    setDataset(sampleData);
+    setColumns(sampleCols);
+    setMeasures(templateMeasures);
+    setWidgets(templateWidgets);
+    setIsCustomDataset(true);
+    setAiAnalysisResult(null);
+    setIsImportOpen(false);
+    setIsSampleDropdownOpen(false);
+
+    if (presetType === "saas") {
+      setView("startup");
+      setAiCleanMessage("🚀 SaaS Growth Sample Dataset Loaded!");
+    } else {
+      setView("report");
+      setAiCleanMessage(`📊 ${targetRole} Sample Dataset Loaded Successfully!`);
+    }
+    setTimeout(() => setAiCleanMessage(null), 6000);
+  };
 
   // Synchronize with logged-in user details
   useEffect(() => {
@@ -718,6 +824,57 @@ export default function App() {
   useEffect(() => {
     if (isFirstMount.current) {
       isFirstMount.current = false;
+
+      // 1. Check for Shareable Link Snapshot in URL Hash or Query Parameter
+      const hash = window.location.hash;
+      const search = window.location.search;
+      let shareStr = "";
+
+      if (hash && hash.includes("share=")) {
+        shareStr = hash.split("share=")[1];
+      } else if (search && search.includes("share=")) {
+        const params = new URLSearchParams(search);
+        shareStr = params.get("share") || "";
+      }
+
+      if (shareStr) {
+        try {
+          const jsonStr = decodeURIComponent(escape(atob(shareStr)));
+          const parsed = JSON.parse(jsonStr);
+          if (parsed && (parsed.dataset || parsed.widgets)) {
+            if (parsed.activeRole) setActiveRole(parsed.activeRole);
+            if (parsed.dataset) setDataset(parsed.dataset);
+            if (parsed.columns) setColumns(parsed.columns);
+            if (parsed.measures) setMeasures(parsed.measures);
+            if (parsed.widgets) setWidgets(parsed.widgets);
+            setIsCustomDataset(true);
+            setView("report");
+
+            // Auto-login as Guest Viewer if user is not logged in
+            const savedUser = localStorage.getItem("bi-mock-user");
+            if (!savedUser && (!hasFirebaseConfig || !auth?.currentUser)) {
+              const guestUser = {
+                uid: "guest-share-" + Date.now(),
+                email: "viewer@dataglance.com",
+                displayName: JSON.stringify({ name: "Shared Link Guest", role: parsed.activeRole || "CMO" })
+              };
+              setCurrentUser(guestUser);
+              localStorage.setItem("bi-mock-user", JSON.stringify(guestUser));
+            }
+
+            setAiCleanMessage("🔗 Shareable Dashboard Loaded Successfully! Viewing shared snapshot.");
+            setTimeout(() => setAiCleanMessage(null), 8000);
+
+            // Clean URL hash without reloading page
+            window.history.replaceState(null, "", window.location.pathname);
+            return;
+          }
+        } catch (e) {
+          console.warn("Failed to parse share link parameter:", e);
+        }
+      }
+
+      // 2. Fallback: Load saved workspace dataset from localStorage
       const savedDataset = localStorage.getItem("bi-dataset");
       if (savedDataset) {
         try {
@@ -970,25 +1127,41 @@ export default function App() {
 
   return (
     <div id="app-viewport-frame" className={`flex h-screen bg-slate-50 font-sans overflow-hidden print:bg-white print:h-auto ${isDarkMode ? "dark" : ""}`}>
-      <div className="hidden lg:block print:hidden h-full">
-        <Sidebar 
-          currentView={currentView} 
-          setView={setView} 
-          activeRole={activeRole} 
-          setRole={setActiveRole}
-          dataLoaded={dataset.length > 0}
-          isAdminMode={isAdminMode}
-          userPlan={userPlan}
-          analysesLeft={analysesLeft}
-          projectSlots={projectSlots}
-          savedProjects={savedProjects}
-          onSaveCurrentProject={handleSaveCurrentProject}
-          onLoadProject={handleLoadProject}
-          onDeleteProject={handleDeleteProject}
-        />
-      </div>
+      {!isFullscreenMode && (
+        <div className="hidden lg:block print:hidden h-full">
+          <Sidebar 
+            currentView={currentView} 
+            setView={setView} 
+            activeRole={activeRole} 
+            setRole={setActiveRole}
+            dataLoaded={dataset.length > 0}
+            isAdminMode={isAdminMode}
+            userPlan={userPlan}
+            analysesLeft={analysesLeft}
+            projectSlots={projectSlots}
+            savedProjects={savedProjects}
+            onSaveCurrentProject={handleSaveCurrentProject}
+            onLoadProject={handleLoadProject}
+            onDeleteProject={handleDeleteProject}
+          />
+        </div>
+      )}
 
-      {isMobileMenuOpen && (
+      {isFullscreenMode && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-slate-900/90 text-white px-4 py-2 rounded-xl border border-slate-700 shadow-2xl backdrop-blur-md animate-fadeIn">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span className="text-xs font-bold uppercase tracking-wider">Executive Presentation Mode</span>
+          <button
+            onClick={() => setIsFullscreenMode(false)}
+            className="ml-3 p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition flex items-center gap-1 text-xs cursor-pointer"
+          >
+            <Minimize2 className="w-4 h-4 text-purple-400" />
+            <span>Exit</span>
+          </button>
+        </div>
+      )}
+
+      {!isFullscreenMode && isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex lg:hidden print:hidden" id="mobile-sidebar-drawer">
           <div 
             className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity duration-200" 
@@ -1016,7 +1189,8 @@ export default function App() {
       )}
 
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden print:h-auto print:overflow-visible">
-        <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-4 flex items-center justify-between shrink-0 print:hidden shadow-xs">
+        {!isFullscreenMode && (
+          <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-4 flex items-center justify-between shrink-0 print:hidden shadow-xs">
           <div className="flex items-center space-x-2 sm:space-x-3.5">
             <button
               id="btn-open-mobile-menu"
@@ -1039,6 +1213,90 @@ export default function App() {
 
           <div className="flex items-center gap-1.5 sm:gap-2.5">
 
+
+            {/* Sample Presets Dropdown */}
+            <div className="relative">
+              <button
+                id="btn-sample-datasets"
+                onClick={() => setIsSampleDropdownOpen(!isSampleDropdownOpen)}
+                className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-semibold text-xs py-2 px-3 rounded-lg transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                title="Load sample dataset templates"
+              >
+                <Database className="w-4 h-4 text-blue-500" />
+                <span className="hidden lg:inline">Sample Datasets</span>
+              </button>
+
+              {isSampleDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsSampleDropdownOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl py-1.5 z-50 animate-fadeIn text-left text-xs font-semibold">
+                    <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
+                      1-Click Preset Datasets
+                    </div>
+                    <button
+                      onClick={() => handleLoadSamplePreset("cmo")}
+                      className="w-full text-left px-3.5 py-2 hover:bg-blue-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-between"
+                    >
+                      <span>📈 CMO Marketing ROI</span>
+                      <span className="text-[10px] text-blue-500 font-bold">40 Rows</span>
+                    </button>
+                    <button
+                      onClick={() => handleLoadSamplePreset("cfo")}
+                      className="w-full text-left px-3.5 py-2 hover:bg-blue-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-between"
+                    >
+                      <span>💰 CFO OpEx & Inflows</span>
+                      <span className="text-[10px] text-emerald-500 font-bold">30 Rows</span>
+                    </button>
+                    <button
+                      onClick={() => handleLoadSamplePreset("sales")}
+                      className="w-full text-left px-3.5 py-2 hover:bg-blue-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-between"
+                    >
+                      <span>🎯 Sales Closed Revenue</span>
+                      <span className="text-[10px] text-amber-500 font-bold">45 Rows</span>
+                    </button>
+                    <button
+                      onClick={() => handleLoadSamplePreset("saas")}
+                      className="w-full text-left px-3.5 py-2 hover:bg-blue-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-between"
+                    >
+                      <span>🚀 SaaS Startup Growth</span>
+                      <span className="text-[10px] text-purple-500 font-bold">MRR/CAC</span>
+                    </button>
+                    <button
+                      onClick={() => handleLoadSamplePreset("hr")}
+                      className="w-full text-left px-3.5 py-2 hover:bg-blue-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-between"
+                    >
+                      <span>👥 HR Headcount & Retention</span>
+                      <span className="text-[10px] text-sky-500 font-bold">30 Rows</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Presentation Mode Toggle */}
+            <button
+              id="btn-toggle-presentation"
+              onClick={() => setIsFullscreenMode(!isFullscreenMode)}
+              className={`p-2 rounded-lg border transition ${
+                isFullscreenMode 
+                  ? "bg-purple-600 text-white border-purple-500" 
+                  : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+              }`}
+              title={isFullscreenMode ? "Exit Fullscreen Presentation Mode" : "Enter Executive Presentation Mode"}
+            >
+              {isFullscreenMode ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4 text-purple-500" />}
+            </button>
+
+            {/* Shareable Dashboard Link Generator */}
+            <button
+              id="btn-share-link"
+              onClick={handleOpenShareModal}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs py-2 px-3 sm:px-4 rounded-lg transition flex items-center gap-1.5 shadow-sm cursor-pointer active:scale-98"
+              title="Get shareable link for this interactive dashboard snapshot"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Share Link</span>
+            </button>
 
             <button
               id="btn-toggle-dark-mode"
@@ -1132,6 +1390,7 @@ export default function App() {
             </button>
           </div>
         </header>
+        )}
 
         <main className="flex-1 overflow-hidden print:overflow-visible">
           {currentView === "admin" && isAdminMode ? (
@@ -1241,6 +1500,92 @@ export default function App() {
           )}
         </main>
       </div>
+
+      {/* Shareable Dashboard Link Modal */}
+      {isShareModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-fadeIn">
+          <div className={`relative w-full max-w-lg border rounded-2xl shadow-2xl p-6 sm:p-7 animate-slideIn transition-colors duration-300 ${
+            isDarkMode ? "bg-slate-900 border-slate-800 text-slate-100" : "bg-white border-slate-200 text-slate-800"
+          }`}>
+            {/* Close Button */}
+            <button
+              onClick={() => setIsShareModalOpen(false)}
+              className={`absolute top-4 right-4 p-1.5 rounded-lg transition ${
+                isDarkMode ? "bg-slate-800 text-slate-400 hover:text-white" : "bg-slate-100 text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-xl">
+                <Share2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">Share Dashboard Snapshot</h3>
+                <p className="text-xs text-slate-400">Anyone with this link will load this exact interactive workspace setup.</p>
+              </div>
+            </div>
+
+            {/* Snapshot Summary Box */}
+            <div className={`p-3.5 border rounded-xl mb-4 text-xs space-y-1.5 ${
+              isDarkMode ? "bg-slate-950 border-slate-800" : "bg-slate-50 border-slate-200"
+            }`}>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Target Stakeholder Role:</span>
+                <span className="font-bold text-blue-500">{activeRole}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Active Widgets:</span>
+                <span className="font-bold">{widgets.length} Charts & KPIs</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Dataset Snapshot Rows:</span>
+                <span className="font-bold">{dataset.length} Rows</span>
+              </div>
+            </div>
+
+            {/* Shareable Link Input & Copy */}
+            <div className="space-y-2">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Shareable URL Link</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={shareUrl}
+                  className={`flex-1 px-3 py-2 border rounded-lg text-xs font-mono select-all focus:outline-none ${
+                    isDarkMode ? "bg-slate-950 border-slate-800 text-emerald-400" : "bg-slate-100 border-slate-250 text-emerald-700"
+                  }`}
+                />
+                <button
+                  onClick={handleCopyShareLink}
+                  className={`px-4 py-2 text-xs font-bold text-white rounded-lg transition flex items-center gap-1.5 cursor-pointer shrink-0 shadow-md ${
+                    shareCopied ? "bg-emerald-600" : "bg-blue-600 hover:bg-blue-500"
+                  }`}
+                >
+                  {shareCopied ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>Copy Link</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Data Protection note */}
+            <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2 text-[10px] text-slate-400">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+              <span>100% Client-Side Snapshot. Data is encoded securely into the URL payload.</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* AI Data Cleaning Toast Notification */}
       {aiCleanMessage && (
