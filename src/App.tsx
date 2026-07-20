@@ -379,22 +379,44 @@ export default function App() {
   const [shareCopied, setShareCopied] = useState(false);
   const [isFullscreenMode, setIsFullscreenMode] = useState(false);
   const [isSampleDropdownOpen, setIsSampleDropdownOpen] = useState(false);
-  const [activePreset, setActivePreset] = useState<string | null>("cmo");
+  const [activePreset, setActivePreset] = useState<string | null>(() => {
+    return localStorage.getItem("bi-active-preset") || "cmo";
+  });
 
   const handleOpenShareModal = async () => {
     try {
+      // Clean measures and widgets to strip unused metadata
+      const cleanMeasures = (measures || []).map((m: Measure) => ({
+        id: m.id,
+        name: m.name,
+        formula: m.formula,
+        format: m.format,
+        expressionType: m.expressionType,
+        columnName: m.columnName,
+        aggregation: m.aggregation,
+        isCustom: m.isCustom
+      }));
+
+      const cleanWidgets = (widgets || []).map((w: Widget) => ({
+        id: w.id,
+        title: w.title,
+        type: w.type,
+        config: w.config,
+        gridSpan: w.gridSpan
+      }));
+
       const sharePayload: any = {
         activeRole,
         view: currentView,
-        measures,
-        widgets
+        measures: cleanMeasures,
+        widgets: cleanWidgets
       };
 
       if (activePreset) {
         sharePayload.preset = activePreset;
       } else {
-        sharePayload.compactDataset = compactDataset(dataset.slice(0, 250));
-        sharePayload.columns = columns;
+        sharePayload.compactDataset = compactDataset(dataset.slice(0, 35));
+        sharePayload.columns = columns.map(c => ({ name: c.name, type: c.type }));
       }
 
       // 1. Attempt server-side short link (/api/share)
@@ -404,7 +426,8 @@ export default function App() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ payload: sharePayload })
         });
-        if (response.ok) {
+        const contentType = response.headers.get("content-type");
+        if (response.ok && contentType && contentType.includes("application/json")) {
           const data = await response.json();
           if (data.id) {
             const url = `${window.location.origin}${window.location.pathname}#s=${data.id}`;
@@ -474,6 +497,7 @@ export default function App() {
     setWidgets(templateWidgets);
     setIsCustomDataset(true);
     setActivePreset(presetType);
+    localStorage.setItem("bi-active-preset", presetType);
     setAiAnalysisResult(null);
     setIsImportOpen(false);
     setIsSampleDropdownOpen(false);
@@ -487,6 +511,7 @@ export default function App() {
     }
     setTimeout(() => setAiCleanMessage(null), 6000);
   };
+
 
 
   // Synchronize with logged-in user details
@@ -1008,6 +1033,7 @@ export default function App() {
     setColumns(importedColumns);
     setIsCustomDataset(true);
     setActivePreset(null);
+    localStorage.removeItem("bi-active-preset");
     setAiAnalysisResult(null);
     setIsImportOpen(false);
 
@@ -1670,6 +1696,12 @@ export default function App() {
                     </>
                   )}
                 </button>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1">
+                <span>Link Optimization Status:</span>
+                <span className="text-emerald-500 font-bold flex items-center gap-1">
+                  {shareUrl.includes("#s=") ? "⚡ Server Short Link" : "📦 Compressed Compact Link"} ({shareUrl.length} chars)
+                </span>
               </div>
             </div>
 
