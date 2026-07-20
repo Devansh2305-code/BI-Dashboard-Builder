@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import { 
-  CreditCard, 
-  Sparkles, 
-  Check, 
-  Database, 
-  ShieldCheck, 
-  Loader2, 
-  DollarSign, 
+import {
+  CreditCard,
+  Sparkles,
+  Check,
+  Database,
+  ShieldCheck,
+  Loader2,
+  DollarSign,
   ArrowRight,
   TrendingUp,
   Award,
@@ -123,7 +123,7 @@ export default function BillingView({
     {
       id: "prime" as PlanType,
       name: "Prime Plan",
-      cost: "Rs. 350",
+      cost: "Rs. 349",
       period: "per month",
       description: "Perfect for active analysts managing small portfolios.",
       icon: TrendingUp,
@@ -234,20 +234,19 @@ export default function BillingView({
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8 bg-slate-50 dark:bg-slate-950/20 min-h-full">
-      
+
       {/* Top Banner Status */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl"></div>
-        
+
         <div>
           <div className="flex items-center gap-2.5">
             <h2 className="text-xl font-bold text-slate-800 dark:text-white">Active Subscription Context</h2>
-            <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded border ${
-              currentPlan === "free" ? "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700" :
-              currentPlan === "core" ? "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800/80" :
-              currentPlan === "prime" ? "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800/80" :
-              "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/80"
-            }`}>
+            <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded border ${currentPlan === "free" ? "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700" :
+                currentPlan === "core" ? "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800/80" :
+                  currentPlan === "prime" ? "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800/80" :
+                    "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/80"
+              }`}>
               {currentPlan} plan
             </span>
             {hasSupabaseConfig && currentUser && currentUser.uid !== "anonymous" && onRefreshPlan && (
@@ -273,8 +272,8 @@ export default function BillingView({
             </div>
             {currentPlan === "free" && (
               <div className="w-24 bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
-                <div 
-                  className="bg-blue-600 h-full rounded-full" 
+                <div
+                  className="bg-blue-600 h-full rounded-full"
                   style={{ width: `${(analysesLeft / 5) * 100}%` }}
                 ></div>
               </div>
@@ -287,8 +286,8 @@ export default function BillingView({
               {savedProjectsCount} / {projectSlots}
             </div>
             <div className="w-24 bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
-              <div 
-                className="bg-purple-600 h-full rounded-full" 
+              <div
+                className="bg-purple-600 h-full rounded-full"
                 style={{ width: `${Math.min((savedProjectsCount / projectSlots) * 100, 100)}%` }}
               ></div>
             </div>
@@ -310,9 +309,9 @@ export default function BillingView({
             const Icon = plan.icon;
             const isActive = currentPlan === plan.id;
             const isSlotBtn = plan.id === "core";
-            
+
             return (
-              <div 
+              <div
                 key={plan.id}
                 className={`bg-white dark:bg-slate-900 border rounded-2xl p-6 flex flex-col justify-between transition-all duration-300 ${plan.color}`}
               >
@@ -322,7 +321,7 @@ export default function BillingView({
                       Best Value
                     </span>
                   )}
-                  
+
                   <div className="flex justify-between items-start mb-4">
                     <div className={`p-2.5 rounded-lg border text-slate-700 dark:text-white ${isActive ? plan.accent : "bg-slate-50 border-slate-100 dark:bg-slate-850 dark:border-slate-800"}`}>
                       <Icon className="w-5 h-5 animate-pulse" />
@@ -331,7 +330,7 @@ export default function BillingView({
 
                   <h3 className="font-bold text-slate-800 dark:text-white text-base">{plan.name}</h3>
                   <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">{plan.description}</p>
-                  
+
                   {/* Cost Panel */}
                   <div className="my-5 pt-3 border-t border-slate-100 dark:border-slate-800/80">
                     <span className="text-2xl font-extrabold text-slate-800 dark:text-white">{plan.cost}</span>
@@ -360,11 +359,10 @@ export default function BillingView({
                     }
                   }}
                   disabled={plan.disabled || (isActive && !isSlotBtn)}
-                  className={`w-full py-2.5 rounded-xl font-bold text-xs transition duration-250 flex items-center justify-center gap-1.5 shadow-sm active:scale-98 cursor-pointer ${
-                    isActive && !isSlotBtn
+                  className={`w-full py-2.5 rounded-xl font-bold text-xs transition duration-250 flex items-center justify-center gap-1.5 shadow-sm active:scale-98 cursor-pointer ${isActive && !isSlotBtn
                       ? "bg-slate-100 text-slate-450 border border-slate-200 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700 cursor-not-allowed"
                       : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/10"
-                  }`}
+                    }`}
                 >
                   <span>{isActive && !isSlotBtn ? "Active Plan" : plan.cta}</span>
                   {!isActive && <ArrowRight className="w-3.5 h-3.5" />}
@@ -379,7 +377,7 @@ export default function BillingView({
       {checkoutModal.isOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 max-w-md w-full rounded-2xl shadow-2xl p-6 sm:p-8 animate-fadeIn">
-            
+
             {/* Close */}
             <button
               onClick={handleCloseCheckout}
@@ -396,7 +394,7 @@ export default function BillingView({
               </div>
               <h3 className="text-lg font-bold text-slate-800 dark:text-white">{checkoutModal.title}</h3>
               <p className="text-xs text-slate-500 mt-1">Complete your simulated payment transaction securely.</p>
-              
+
               <div className="my-4 p-3 bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800/80 rounded-xl">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Amount</span>
                 <span className="text-2xl font-black text-slate-800 dark:text-white">Rs. {checkoutModal.cost}</span>
@@ -485,7 +483,7 @@ export default function BillingView({
               <h3 className="text-base font-bold text-slate-800 dark:text-white">Upgrade Request History</h3>
               <p className="text-[11px] text-slate-405 mt-0.5">Track the approval status of your manual payment reference codes.</p>
             </div>
-            <button 
+            <button
               onClick={fetchTransactions}
               className="px-3 py-1 bg-slate-150 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-350 hover:bg-slate-200 dark:hover:bg-slate-750 rounded-lg transition flex items-center gap-1 cursor-pointer"
               disabled={loadingTransactions}
@@ -521,11 +519,10 @@ export default function BillingView({
                       <td className="py-3 text-slate-400 font-mono">{txn.upi_id}</td>
                       <td className="py-3 font-mono text-slate-450 dark:text-slate-500">{txn.transaction_ref}</td>
                       <td className="py-3 text-right">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${
-                          txn.status === "pending" ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
-                          txn.status === "approved" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
-                          "bg-rose-500/10 text-rose-500 border-rose-500/20"
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${txn.status === "pending" ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
+                            txn.status === "approved" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
+                              "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                          }`}>
                           {txn.status}
                         </span>
                       </td>
