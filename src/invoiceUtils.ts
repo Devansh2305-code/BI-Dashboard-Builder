@@ -26,9 +26,8 @@ export function formatTransactionToInvoice(txn: any, currentUser: any): Invoice 
   });
 
   const baseAmount = Number(txn.amount) || 0;
-  // Calculate 18% GST tax breakdown
-  const taxAmount = Math.round(baseAmount * 0.18 * 100) / 100;
-  const totalAmount = Math.round((baseAmount + taxAmount) * 100) / 100;
+  const totalAmount = baseAmount;
+
 
   const planCapitalized = txn.plan ? String(txn.plan).toUpperCase() : "CORE";
   const planTitle = planCapitalized === "CORE" 
@@ -321,7 +320,7 @@ export function printInvoicePDF(invoice: Invoice) {
 
   <div class="no-print-bar">
     <div>
-      <strong>Official Tax Bill PDF Preview</strong> — Invoice ${invoice.invoiceNumber}
+      <strong>Official Bill PDF Preview</strong> — Invoice ${invoice.invoiceNumber}
     </div>
     <button class="btn-print" onclick="window.print()">🖨️ Download PDF / Print</button>
   </div>
@@ -334,12 +333,12 @@ export function printInvoicePDF(invoice: Invoice) {
             <div class="logo-box">DG</div>
             <div>
               <div class="brand-title">DataGlance BI</div>
-              <div class="brand-subtitle">WPP Productions Inc.</div>
+              <div class="brand-subtitle">Enterprise BI Studio</div>
             </div>
           </div>
         </td>
         <td class="invoice-title">
-          <div class="invoice-heading">Tax Invoice</div>
+          <div class="invoice-heading">Invoice</div>
           <div class="inv-number">${invoice.invoiceNumber}</div>
           <div class="status-stamp ${isPaid ? 'status-paid' : 'status-pending'}">
             ${isPaid ? 'PAID & VERIFIED' : 'PAYMENT PENDING'}
@@ -352,10 +351,10 @@ export function printInvoicePDF(invoice: Invoice) {
       <div class="info-block">
         <h4>Billed From</h4>
         <p class="bold">DataGlance Analytics Studio</p>
-        <p>WPP Productions Technology Hub</p>
-        <p>GSTIN: 07AAACW1234F1Z9</p>
-        <p>support@dataglance.wpp.com</p>
+        <p>Enterprise Technology Hub</p>
+        <p>support@dataglance.com</p>
       </div>
+
 
       <div class="info-block">
         <h4>Billed To</h4>
@@ -396,19 +395,12 @@ export function printInvoicePDF(invoice: Invoice) {
     </table>
 
     <div class="summary-section">
-      <div class="summary-row">
-        <span>Subtotal</span>
-        <span>Rs. ${invoice.amount.toLocaleString()}</span>
-      </div>
-      <div class="summary-row">
-        <span>GST Tax (18%)</span>
-        <span>Rs. ${invoice.taxAmount.toLocaleString()}</span>
-      </div>
       <div class="summary-row total">
         <span>Total Amount</span>
         <span>Rs. ${invoice.totalAmount.toLocaleString()}</span>
       </div>
     </div>
+
 
     <div class="footer">
       <div>Thank you for choosing DataGlance BI Studio!</div>

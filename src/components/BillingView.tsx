@@ -526,7 +526,7 @@ export default function BillingView({
               <div>
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
                   <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  Tax Invoices & Billing History
+                  Invoices & Billing History
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">Search, view, and download official PDF bills generated for your workspace.</p>
               </div>
@@ -587,9 +587,7 @@ export default function BillingView({
                       <th className="py-3 px-3">Invoice #</th>
                       <th className="py-3 px-3">Date</th>
                       <th className="py-3 px-3">Description / Plan</th>
-                      <th className="py-3 px-3">Subtotal</th>
-                      <th className="py-3 px-3">GST (18%)</th>
-                      <th className="py-3 px-3">Total Amount</th>
+                      <th className="py-3 px-3">Amount</th>
                       <th className="py-3 px-3">Status</th>
                       <th className="py-3 px-3 text-right">Actions</th>
                     </tr>
@@ -604,8 +602,6 @@ export default function BillingView({
                         <td className="py-3.5 px-3 font-semibold text-slate-800 dark:text-white">
                           {inv.planName}
                         </td>
-                        <td className="py-3.5 px-3 font-mono">Rs. {inv.amount.toLocaleString()}</td>
-                        <td className="py-3.5 px-3 font-mono text-slate-450">Rs. {inv.taxAmount.toLocaleString()}</td>
                         <td className="py-3.5 px-3 font-mono font-bold text-slate-900 dark:text-white">
                           Rs. {inv.totalAmount.toLocaleString()}
                         </td>
@@ -620,6 +616,7 @@ export default function BillingView({
                             {inv.status === "approved" ? "paid" : inv.status}
                           </span>
                         </td>
+
                         <td className="py-3.5 px-3 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <button
@@ -772,12 +769,13 @@ export default function BillingView({
                   </div>
                   <div>
                     <h3 className="font-extrabold text-slate-800 dark:text-white text-base">DataGlance BI Studio</h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">WPP Productions Inc.</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Enterprise BI Studio</p>
+
                   </div>
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Official Tax Invoice</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Official Invoice</span>
                 <span className="text-sm font-mono font-bold text-blue-600 dark:text-blue-400">{selectedInvoice.invoiceNumber}</span>
               </div>
             </div>
@@ -817,10 +815,6 @@ export default function BillingView({
                       Rs. {selectedInvoice.amount.toLocaleString()}
                     </td>
                   </tr>
-                  <tr className="bg-slate-50/50 dark:bg-slate-950/30 text-slate-500">
-                    <td className="py-2 px-3 text-right font-medium">GST Tax (18%)</td>
-                    <td className="py-2 px-3 text-right font-mono">Rs. {selectedInvoice.taxAmount.toLocaleString()}</td>
-                  </tr>
                   <tr className="bg-slate-100/50 dark:bg-slate-850 font-bold text-slate-800 dark:text-white">
                     <td className="py-3 px-3 text-right uppercase tracking-wider text-[11px]">Total Paid Amount</td>
                     <td className="py-3 px-3 text-right font-mono text-sm text-blue-600 dark:text-blue-400">
@@ -830,6 +824,7 @@ export default function BillingView({
                 </tbody>
               </table>
             </div>
+
 
             {/* Modal Actions */}
             <div className="flex gap-3">

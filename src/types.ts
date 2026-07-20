@@ -162,10 +162,11 @@ export interface Invoice {
   customerEmail: string;
   planName: string;
   amount: number;
-  taxAmount: number;
+  taxAmount?: number;
   totalAmount: number;
   upiId?: string;
   transactionRef: string;
   status: "approved" | "pending" | "failed" | "paid";
 }
+
 
