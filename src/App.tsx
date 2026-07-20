@@ -29,6 +29,7 @@ import { compactDataset, decompactDataset, compressPayload, decompressPayload } 
 import { onAuthStateChanged, signOut, updateProfile } from "firebase/auth";
 import { auth, hasFirebaseConfig } from "./firebase";
 import { supabase, hasSupabaseConfig } from "./supabase";
+import { Analytics } from "@vercel/analytics/react";
 import { 
   Database, 
   RefreshCw, 
@@ -1734,6 +1735,7 @@ export default function App() {
           </div>
         </div>
       )}
+      <Analytics />
     </div>
   );
 }
