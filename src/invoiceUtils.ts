@@ -47,7 +47,7 @@ export function formatTransactionToInvoice(txn: any, currentUser: any): Invoice 
     customerEmail: currentUser?.email || txn.email || "client@dataglance.com",
     planName: planTitle,
     amount: baseAmount,
-    taxAmount,
+    taxAmount: 0,
     totalAmount,
     upiId: txn.upi_id || "N/A",
     transactionRef: txn.transaction_ref || "UTN-SIMULATED",
